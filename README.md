@@ -83,6 +83,29 @@ Spec-Driven Development is a methodology in which a living, versioned specificat
 
 ---
 
+## Open Mercato SDD Workflow
+
+This starter ships an optional **Open Mercato** track for products built on the [Open Mercato platform](https://docs.openmercato.com). When using it, the general 6-phase workflow above still applies — you just add platform-aware artifacts and gates.
+
+| Concern | File |
+|--------|------|
+| Fit assessment (Phase 1.5) | `docs/product/open-mercato-fit.md` |
+| Module inventory | `docs/spec/module-map.md` |
+| ACL feature strings | `docs/spec/acl-matrix.md` |
+| Admin UI routes | `docs/spec/ui-routes.md` |
+| Integrations / OpenAPI / commands | `docs/spec/integration-contracts.md` |
+| Environment & secrets | `docs/ops/environment.md` |
+| Migrations | `docs/ops/migration-plan.md` |
+| QA runbook | `docs/ops/qa-runbook.md` |
+| Starting agent prompt | `docs/prompts/open-mercato-sdd-agent.md` |
+| Reusable phase skills | `.ai/skills/open-mercato-*/SKILL.md` |
+
+**Dependency seed:** `package.json` lists `@open-mercato/core` so the docs and skills anchor to a real package. This repo is **not** a runnable Open Mercato app — for a standalone app, run `npx create-mercato-app` in a new directory.
+
+To kick off the workflow, paste `docs/prompts/open-mercato-sdd-agent.md` to your agent and answer phase by phase.
+
+---
+
 ## License
 
 This scaffold is released under the MIT License. Use it freely for commercial and open-source projects.

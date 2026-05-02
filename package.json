@@ -1,0 +1,24 @@
+{
+  "name": "sdd-starter",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Spec-Driven Development starter repository with the Open Mercato SDD upgrade. This is a documentation- and tooling-focused scaffold, not a runnable Open Mercato application. Use `npx create-mercato-app` to scaffold a full standalone app; this repo seeds @open-mercato/core only as a documentation reference.",
+  "license": "MIT",
+  "keywords": [
+    "spec-driven-development",
+    "sdd",
+    "open-mercato",
+    "documentation",
+    "starter"
+  ],
+  "scripts": {
+    "validate:skills": "node -e \"const fs=require('fs');const path=require('path');const dir='.ai/skills';if(!fs.existsSync(dir)){console.error('No skills dir');process.exit(1)};const skills=fs.readdirSync(dir).filter(f=>fs.statSync(path.join(dir,f)).isDirectory());let fail=0;for(const s of skills){const p=path.join(dir,s,'SKILL.md');if(!fs.existsSync(p)){console.error('MISSING',p);fail++;continue}const t=fs.readFileSync(p,'utf8');if(!t.startsWith('---')){console.error('NO FRONTMATTER',p);fail++;continue}const m=t.match(/^---\\n([\\s\\S]*?)\\n---/);if(!m){console.error('BAD FRONTMATTER',p);fail++;continue}const fm=m[1];if(!/^name:\\s*\\S+/m.test(fm)||!/^description:\\s*\\S+/m.test(fm)){console.error('MISSING name/description',p);fail++;continue}console.log('OK',p)}process.exit(fail?1:0)\""
+  },
+  "dependencies": {
+    "@open-mercato/core": "*"
+  },
+  "openMercato": {
+    "role": "documentation-seed",
+    "note": "@open-mercato/core is listed as a dependency to anchor SDD docs and skills against the platform. This repo is not a runnable Open Mercato app. To scaffold a full app, run `npx create-mercato-app` in a new directory."
+  }
+}
