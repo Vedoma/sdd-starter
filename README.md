@@ -1,68 +1,108 @@
-# SDD Starter — Spec-Driven Development Repository
+# SDD Starter — Spec-Driven Development scaffold
 
-> **Version:** 1.0 | **Principle:** The Specification is the Single Source of Truth. Code serves the Spec — the Spec never serves the Code.
+> **Principle:** the specification is the single source of truth. Code serves the spec —
+> the spec never serves the code.
 
-This repository is a ready-to-use scaffold for Spec-Driven Development (SDD). Clone it, rename it, and start from Phase 1. Every folder, template, and workflow file is pre-wired.
+A ready-to-use, MIT-licensed scaffold for **Spec-Driven Development**: plain Markdown,
+no CLI, no runtime, no lock-in. Clone it, pick a ceremony profile, and drive a project
+from idea to implementation with every decision traceable and every rule enforced in CI.
 
----
+## Why this exists — control the ideas, not the code
 
-## What Is SDD?
+When an LLM can generate more code than you can read, reviewing code line-by-line stops
+scaling. The leverage moves **up a level** — to the ideas the code must satisfy: the
+brief, the spec, the decisions, the acceptance criteria. That is not the end of software
+craftsmanship; it is craftsmanship applied where it now counts. (See antirez,
+[_Control the ideas, not the code_](https://antirez.com/news/169).)
 
-Spec-Driven Development is a methodology in which a living, versioned specification document governs all phases of the project lifecycle — from ideation through deployment. Every implementation decision is traceable to a written requirement; every architectural trade-off is recorded in a formal decision log.
+This scaffold makes those ideas first-class: **versioned, reviewable, and enforced** with
+the same rigor as code — immutable decisions, an amendment process, and CI gates that
+block a non-compliant PR rather than trusting an agent to remember the rules. That is what
+"Idea as code" means here.
 
-**Core rule:** No code is written without a corresponding spec entry. No spec entry is left un-implemented or un-rejected.
+## The two-mode lifecycle
 
----
+```
+GREENFIELD BOOTSTRAP                         CHANGE-BASED SUSTAIN (post-MVP / brownfield)
+brief → prd → spec (+design) → adr → plan  ──►  living spec  ◄──  CHANGE-NNNN (delta) → archive
+        → implement                            docs/spec/**        docs/changes/**
+```
 
-## Repository Structure
+- **Greenfield** builds the initial living spec, phase by phase.
+- **Change-based** sustains it: after the spec is accepted you never edit it ad hoc —
+  every change is a delta (`ADDED` / `MODIFIED` / `REMOVED`) that folds into the living
+  spec and is then archived. Archiving keeps an agent's working context small (it reads
+  the active tree, not the history) without losing the audit trail. See
+  [`docs/changes/`](./docs/changes/).
+
+## Repository structure
 
 ```
 .
+├── constitution.md               ← binding principles + their enforcement (read first)
+├── SPEC_VERSION.md               ← spec version + amendment log
+├── sdd.config.yml                ← ceremony profile (which docs are mandatory)
+├── AGENTS.md                     ← operating manual for AI agents
 ├── docs/
-│   ├── product/
-│   │   ├── brief.md              ← Phase 1: Product Brief (fill this first)
-│   │   └── prd.md                ← Phase 2: Product Requirements Document
-│   ├── spec/
-│   │   ├── technical-spec.md     ← Phase 3: Master Technical Specification (SSoT)
-│   │   ├── data-model.md         ← Phase 3: Entity & schema definitions
-│   │   └── api-contracts.md      ← Phase 3: API endpoint specifications
-│   ├── adr/
-│   │   ├── README.md             ← ADR index with status table
-│   │   └── ADR-0001-template.md  ← Phase 4: Copy this for each new decision
-│   └── plan/
-│       ├── milestones.md         ← Phase 5: Delivery roadmap
-│       └── backlog.md            ← Phase 5: Granular task backlog
-├── src/                          ← Phase 6: Implementation (add your code here)
-├── tests/                        ← Phase 6: Spec-derived tests
-├── .github/
-│   └── PULL_REQUEST_TEMPLATE.md  ← Enforces spec reference on every PR
-└── SPEC_VERSION.md               ← Current spec version + changelog
+│   ├── product/                  ← brief.md, prd.md
+│   ├── spec/                     ← technical-spec.md (SSoT), data-model.md, api-contracts.md
+│   ├── design/                   ← design.md (design system) + mockups/
+│   ├── adr/                      ← MADR decisions (ADR-0000-template.md) + index
+│   ├── plan/                     ← milestones.md, backlog.md (+ archive/)
+│   ├── changes/                  ← CHANGE-NNNN deltas (+ archive/)
+│   └── ecosystem/                ← OPTIONAL: forge-md interop (delete if unused)
+├── prompts/                      ← tool-agnostic prompt body per phase
+├── .claude/commands/             ← Claude Code command wrappers over prompts/
+├── .github/                      ← PR template + CI (adr-status, spec-lint)
+├── scripts/spec-lint.mjs         ← the enforcement backbone
+├── src/  tests/                  ← implementation
 ```
 
----
+## The workflow
 
-## The 6-Phase Workflow
+Each phase has a command (Claude Code: [`.claude/commands/`](./.claude/commands/)) backed
+by a tool-agnostic prompt (any agent: [`prompts/`](./prompts/)):
 
-| # | Phase | Start Here | Output |
-|---|-------|-----------|--------|
-| 1 | Idea Crystallization | `docs/product/brief.md` | Product Brief |
-| 2 | Requirements Definition | `docs/product/prd.md` | PRD |
-| 3 | Technical Specification | `docs/spec/technical-spec.md` | Tech Spec + Data Model + API Contracts |
-| 4 | Architecture Decisions | `docs/adr/` | ADR set |
-| 5 | Implementation Planning | `docs/plan/` | Milestones + Backlog |
-| 6 | Guided Implementation | `src/` + `tests/` | Code with full spec traceability |
+| # | Phase | Command | Output |
+|---|-------|---------|--------|
+| 1 | Idea | `/brief` | `docs/product/brief.md` |
+| 2 | Requirements | `/prd` | `docs/product/prd.md` |
+| 3 | Specification | `/spec`, `/design` | `docs/spec/*.md`, `docs/design/design.md` |
+| 4 | Decisions | `/adr` | `docs/adr/ADR-NNNN-*.md` |
+| 5 | Planning | `/plan` | `docs/plan/milestones.md`, `docs/plan/backlog.md` |
+| 6 | Implementation | `/implement TASK-XXX` | `src/`, `tests/` |
 
----
+Agents draft; humans accept. Every generated document marks inferences
+`[INFERRED - CONFIRM]` and gaps `[OPEN - REQUIRES INPUT]` rather than guessing. See
+[`AGENTS.md`](./AGENTS.md).
 
-## Getting Started
+## Getting started
 
-1. **Clone this repo** and rename it to your project
-2. **Delete placeholder content** inside each template (everything between `<!-- -->` markers or in `[BRACKETS]`)
-3. **Start with `docs/product/brief.md`** — fill in the Problem Statement, Target User, and Value Proposition
-4. **Work phase by phase** — do not skip to implementation before the spec is accepted
-5. **Every PR must fill in** `.github/PULL_REQUEST_TEMPLATE.md` — spec reference is mandatory
+1. **Clone and rename** this repo.
+2. **Pick a profile** in [`sdd.config.yml`](./sdd.config.yml) (`solo` / `team` /
+   `enterprise`; set `ui: false` for a CLI/library/data project).
+3. **Read [`constitution.md`](./constitution.md)** — the rules `spec-lint` enforces.
+4. **Enable the local hook** (optional): `git config core.hooksPath .githooks`.
+5. **Start at `/brief`** (or, for an existing codebase, write a minimal
+   `docs/spec/technical-spec.md` of what is already true and drive changes through
+   `docs/changes/`).
+6. **Work phase by phase** — do not implement ahead of an accepted spec. Every PR fills
+   [`.github/PULL_REQUEST_TEMPLATE.md`](./.github/PULL_REQUEST_TEMPLATE.md); the Spec
+   Reference is mandatory and CI-enforced.
 
----
+## Landing zone for a forge-md bundle
+
+This scaffold is the downstream half of a pipeline. The
+[**forge-md**](https://github.com/Vedoma/forge-md) workbench takes an idea through
+collaborative, multi-model spec review and exports a **bundle** that unzips straight into
+this structure — phases 1–5 already filled (brief, PRD, spec, decisions, plan). You then
+enter at `/implement`. The mapping is described in the optional
+[`docs/ecosystem/forge-md.md`](./docs/ecosystem/forge-md.md) (delete it if you never use
+forge-md).
+
+Nothing forces you upstream: this scaffold stands alone. Together they are one pipeline —
+collaborative spec review + a neutral public scaffold + a plain-Markdown handoff — with
+**zero lock-in at every layer**: self-hostable workbench, MIT scaffold, portable Markdown.
 
 ## Key Rules
 
@@ -73,9 +113,7 @@ spec overreach is a defect; accepted specs are never edited silently (use the
 tests derive from acceptance criteria; no secrets in the repo; every change is reviewable
 and reversible. Read the constitution for the full, enforceable list.
 
----
-
-## Scaling This Repo
+## Scaling this repo
 
 Ceremony is a real setting, not advice: pick a **profile** (`solo` / `team` /
 `enterprise`) in [`sdd.config.yml`](./sdd.config.yml) and `spec-lint` enforces exactly the
@@ -83,8 +121,6 @@ documents that profile requires. A solo project is never failed for lacking ente
 documents; a non-UI project sets `ui: false` to drop the design spec. See
 [`docs/profiles.md`](./docs/profiles.md) for the full matrix.
 
----
-
 ## License
 
-This scaffold is released under the MIT License. Use it freely for commercial and open-source projects.
+MIT. Use it freely for commercial and open-source projects.
