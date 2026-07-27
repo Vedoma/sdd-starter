@@ -66,10 +66,12 @@ Spec-Driven Development is a methodology in which a living, versioned specificat
 
 ## Key Rules
 
-- **Spec Overreach is a defect.** Implementing more than the spec asks is treated the same as a bug.
-- **Never silently edit an accepted spec.** Use the amendment process (`SPEC_VERSION.md`).
-- **ADRs are immutable.** Supersede them with a new ADR — never delete or overwrite.
-- **Tests are derived from acceptance criteria,** not from code. Write tests before looking at the implementation.
+The binding principles live in **[`constitution.md`](./constitution.md)** - each with the
+CI/review mechanism that enforces it. In short: the spec is the single source of truth;
+spec overreach is a defect; accepted specs are never edited silently (use the
+`SPEC_VERSION.md` amendment process); ADRs are immutable (supersede, never overwrite);
+tests derive from acceptance criteria; no secrets in the repo; every change is reviewable
+and reversible. Read the constitution for the full, enforceable list.
 
 ---
 
