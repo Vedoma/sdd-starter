@@ -1,0 +1,151 @@
+name: ADR status update
+
+# Updates an ADR's front-matter `status` and its "## Status history" log from a
+# /adr slash command in a PR comment, then commits to the PR branch and posts a
+# confirmation. Never merges.
+#
+# Commands (PR comments, write/admin only):
+#   /adr accept
+#   /adr accept supersedes ADR-NNNN
+#   /adr reject "<reason>"
+#   /adr deprecate "<reason>"
+#
+# All ADR-file mutation happens in .github/scripts/adr-status.mjs, which
+# receives the comment body via an env var (never shell-interpolated) and
+# sanitizes any reason into a single history line.
+#
+# Assumes the repo convention of ONE ADR file per PR (the "Detect single ADR
+# file" step enforces it) and that the default branch has branch protection so
+# these bot commits land on the PR branch, not on trunk.
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  adr-status:
+    # Cheap pre-filter; the script does the strict, anchored command parse.
+    if: >-
+      github.event.issue.pull_request != null &&
+      (contains(github.event.comment.body, '/adr accept') ||
+       contains(github.event.comment.body, '/adr reject') ||
+       contains(github.event.comment.body, '/adr deprecate'))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify commenter has write access
+        id: auth
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          perm=$(gh api "repos/${{ github.repository }}/collaborators/${{ github.event.comment.user.login }}/permission" --jq '.permission' 2>/dev/null || echo "none")
+          echo "Commenter permission: $perm"
+          if [[ "$perm" == "admin" || "$perm" == "write" ]]; then
+            echo "authorized=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "authorized=false" >> "$GITHUB_OUTPUT"
+            echo "permission=$perm" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Explain restriction to unauthorized commenter
+        if: steps.auth.outputs.authorized == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PERM: ${{ steps.auth.outputs.permission }}
+          COMMENTER: ${{ github.event.comment.user.login }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh pr comment "$PR_NUMBER" --repo "$REPO" --body "Hi @${COMMENTER} - the /adr status commands require **write** or **admin** access (yours is \`${PERM}\`). Leave a plain comment with feedback and a maintainer will weigh in. See docs/adr/README.md." || echo "comment failed; continuing"
+
+      - name: Resolve PR head
+        if: steps.auth.outputs.authorized == 'true'
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          pr_json=$(gh api "repos/${{ github.repository }}/pulls/${{ github.event.issue.number }}")
+          echo "head_ref=$(echo "$pr_json" | jq -r '.head.ref')" >> "$GITHUB_OUTPUT"
+          echo "head_repo=$(echo "$pr_json" | jq -r '.head.repo.full_name')" >> "$GITHUB_OUTPUT"
+
+      - name: Reject cross-fork PRs
+        if: >-
+          steps.auth.outputs.authorized == 'true' &&
+          steps.pr.outputs.head_repo != github.repository
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr comment "${{ github.event.issue.number }}" --repo "${{ github.repository }}" --body "ADR auto-status cannot push to forks. Rebase the PR into a branch on the main repository first."
+          exit 1
+
+      - name: Checkout PR head
+        if: steps.auth.outputs.authorized == 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.pr.outputs.head_ref }}
+          fetch-depth: 0
+
+      - name: Detect single ADR file
+        if: steps.auth.outputs.authorized == 'true'
+        id: adr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mapfile -t files < <(gh pr view "${{ github.event.issue.number }}" --repo "${{ github.repository }}" --json files --jq '.files[].path' | grep -E '^docs/adr/ADR-[0-9]+-.*\.md$' | grep -v '/ADR-0000-template' || true)
+          if [[ ${#files[@]} -ne 1 ]]; then
+            gh pr comment "${{ github.event.issue.number }}" --repo "${{ github.repository }}" --body "ADR auto-status needs exactly one changed ADR file under docs/adr/ (found ${#files[@]})."
+            exit 1
+          fi
+          echo "file=${files[0]}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Node
+        if: steps.auth.outputs.authorized == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Apply status change
+        if: steps.auth.outputs.authorized == 'true'
+        id: apply
+        env:
+          # COMMENT_BODY is passed via env (never inline ${{ }}) so a crafted
+          # comment cannot inject into the shell; the script sanitizes it.
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          ADR_FILE: ${{ steps.adr.outputs.file }}
+          ACTOR: ${{ github.event.comment.user.login }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          export DATE="$(date -u +%Y-%m-%d)"
+          node .github/scripts/adr-status.mjs
+
+      - name: Report failure
+        if: steps.auth.outputs.authorized == 'true' && steps.apply.outputs.ok == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ERRMSG: ${{ steps.apply.outputs.error }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh pr comment "$PR_NUMBER" --repo "$REPO" --body "$ERRMSG"
+          exit 1
+
+      - name: Commit, push, confirm
+        if: steps.auth.outputs.authorized == 'true' && steps.apply.outputs.ok == 'true' && steps.apply.outputs.changed != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CHANGED: ${{ steps.apply.outputs.changed }}
+          SUMMARY: ${{ steps.apply.outputs.summary }}
+          COMMENTER: ${{ github.event.comment.user.login }}
+          HEAD_REF: ${{ steps.pr.outputs.head_ref }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- $CHANGED
+          git commit -m "docs(adr): ${SUMMARY} via PR comment" -m "Triggered by @${COMMENTER} in #${PR_NUMBER}."
+          git push origin "HEAD:${HEAD_REF}"
+          gh pr comment "$PR_NUMBER" --repo "$REPO" --body "Done: ${SUMMARY}. Front matter and status history updated on this PR. The workflow does not auto-merge."
