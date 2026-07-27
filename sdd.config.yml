@@ -1,0 +1,57 @@
+# Ceremony configuration for this project.
+#
+# spec-lint (.github/workflows/spec-lint.yml) reads this file to decide which SDD
+# documents are MANDATORY. Pick the profile that matches your project's size, and set
+# `ui` for whether a design spec applies. A `solo` project is never failed for missing
+# `team`/`enterprise` documents.
+
+profile: team # solo | team | enterprise
+ui: true # false for CLI / library / data-pipeline projects -> the design spec is not required
+
+# Force a specific document required/optional regardless of the profile.
+overrides:
+  # docs/design/design.md: required
+
+# --- Profile definitions (the mandatory-doc matrix) --------------------------------
+profiles:
+  solo:
+    required:
+      - docs/product/brief.md
+      - docs/spec/technical-spec.md
+      - docs/plan/backlog.md
+    optional:
+      - docs/product/prd.md
+      - docs/spec/data-model.md
+      - docs/spec/api-contracts.md
+      - docs/plan/milestones.md
+      - docs/design/design.md
+
+  team:
+    required:
+      - docs/product/brief.md
+      - docs/product/prd.md
+      - docs/spec/technical-spec.md
+      - docs/spec/data-model.md
+      - docs/spec/api-contracts.md
+      - docs/plan/milestones.md
+      - docs/plan/backlog.md
+    optional:
+      - docs/design/design.md
+
+  enterprise:
+    required:
+      - docs/product/brief.md
+      - docs/product/prd.md
+      - docs/spec/technical-spec.md
+      - docs/spec/data-model.md
+      - docs/spec/api-contracts.md
+      - docs/design/design.md
+      - docs/plan/milestones.md
+      - docs/plan/backlog.md
+    optional: []
+
+# Resolution (implemented by spec-lint):
+#   required = profiles[profile].required
+#            + (docs/design/design.md if ui: true and the profile lists it optional/required)
+#            +/- overrides
+#   When ui: false, docs/design/design.md is dropped from required even for enterprise.
