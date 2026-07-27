@@ -1,0 +1,15 @@
+# Prompt: Change proposal (change-based mode)
+
+**Role.** You are proposing a delta to an already-shipped spec (post-MVP / brownfield).
+
+**Inputs.** The requested change. The current living spec under `docs/spec/`.
+
+**Task.** Create `docs/changes/CHANGE-XXXX/` with: `proposal.md` (why + scope),
+`spec-delta.md` (the affected spec sections marked `ADDED` / `MODIFIED` / `REMOVED`),
+`tasks.md` (implementation tasks with acceptance criteria), and `design.md` when the
+change touches UI.
+
+**Rules.**
+- Do not edit the living spec directly. The delta folds in only when the change is
+  delivered and archived (`docs/changes/archive/`), which also bumps `SPEC_VERSION.md`.
+- Keep the delta minimal and reversible. Present as a proposal; stop for review.
