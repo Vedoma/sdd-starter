@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# spec-lint pre-commit hook. Enable once with:
+#   git config core.hooksPath .githooks
+# Skips silently if Node is unavailable (the CI check still gates merge).
+if command -v node >/dev/null 2>&1; then
+  node scripts/spec-lint.mjs || {
+    echo "spec-lint failed - fix the errors above or commit with --no-verify to bypass locally (CI still enforces)."
+    exit 1
+  }
+fi
