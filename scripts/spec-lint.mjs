@@ -18,43 +18,59 @@ const err = (clause, msg) => errors.push(`[${clause}] ${msg}`)
 const warn = (clause, msg) => warnings.push(`[${clause}] ${msg}`)
 const read = (p) => (existsSync(p) ? readFileSync(p, 'utf8') : null)
 
-// ---- 1. Ceremony profile: mandatory documents present (C1) ----------------------
+// ---- 1. Capabilities + process: mandatory documents present (C1) ----------------
+// Read a boolean `key` under a top-level `block:` in sdd.config.yml. Hand-rolled
+// because the scaffold ships no YAML dependency. Returns true / false / undefined.
+function cfgFlag(cfg, block, key) {
+  let inBlock = false
+  for (const raw of cfg.split('\n')) {
+    if (new RegExp(`^${block}:\\s*$`).test(raw)) {
+      inBlock = true
+      continue
+    }
+    if (inBlock && /^\S/.test(raw)) break // dedent to a new top-level key ends the block
+    if (inBlock) {
+      const m = raw.match(new RegExp(`^\\s+${key}:\\s*(true|false)\\b`))
+      if (m) return m[1] === 'true'
+    }
+  }
+  return undefined
+}
+
 function requiredDocs() {
   const cfg = read('sdd.config.yml')
   if (!cfg) {
     warn('C1', 'sdd.config.yml not found - skipping mandatory-document check')
     return []
   }
-  const profile = (cfg.match(/^profile:\s*(\w+)/m) || [])[1] || 'team'
-  const ui = !/^ui:\s*false\b/m.test(cfg)
-  // Extract the `required:` list under `profiles: <profile>:`.
-  const lines = cfg.split('\n')
-  let inProfiles = false,
-    inProfile = false,
-    inRequired = false
-  const req = []
-  for (const raw of lines) {
-    if (/^profiles:\s*$/.test(raw)) inProfiles = true
-    if (!inProfiles) continue
-    if (new RegExp(`^  ${profile}:\\s*$`).test(raw)) {
-      inProfile = true
+  // Core is always required; capabilities (shape) and process (planning) add to it.
+  const req = new Set([
+    'docs/product/brief.md',
+    'docs/spec/technical-spec.md',
+    'docs/plan/backlog.md',
+  ])
+  if (cfgFlag(cfg, 'process', 'prd')) req.add('docs/product/prd.md')
+  if (cfgFlag(cfg, 'process', 'milestones')) req.add('docs/plan/milestones.md')
+  if (cfgFlag(cfg, 'capabilities', 'ui')) req.add('docs/design/design.md')
+  if (cfgFlag(cfg, 'capabilities', 'api')) req.add('docs/spec/api-contracts.md')
+  if (cfgFlag(cfg, 'capabilities', 'data')) req.add('docs/spec/data-model.md')
+  // overrides: `  <path>: required | optional`
+  let inOverrides = false
+  for (const raw of cfg.split('\n')) {
+    if (/^overrides:\s*$/.test(raw)) {
+      inOverrides = true
       continue
     }
-    if (inProfile && /^  \w+:\s*$/.test(raw)) break // next profile
-    if (inProfile && /^    required:\s*$/.test(raw)) {
-      inRequired = true
-      continue
-    }
-    if (inProfile && /^    optional:\s*$/.test(raw)) inRequired = false
-    if (inRequired) {
-      const m = raw.match(/^\s*-\s*(\S+)\s*$/)
-      if (m) req.push(m[1])
+    if (inOverrides && /^\S/.test(raw)) break
+    if (inOverrides) {
+      const m = raw.match(/^\s+([^\s:]+):\s*(required|optional)\b/)
+      if (m) m[2] === 'required' ? req.add(m[1]) : req.delete(m[1])
     }
   }
-  return req.filter((d) => ui || !d.endsWith('design/design.md'))
+  return [...req]
 }
 for (const doc of requiredDocs()) {
-  if (!existsSync(doc)) err('C1', `required document missing for the active profile: ${doc}`)
+  if (!existsSync(doc)) err('C1', `required document missing (per sdd.config.yml): ${doc}`)
 }
 
 // ---- 2. Backlog tasks: Spec Reference + >=2 acceptance criteria (C1, C5) ----------
@@ -115,7 +131,7 @@ if (process.env.PR_BODY != null) {
 // ---- 5. Design anti-patterns: no hardcoded colors in src/ when a UI project (C2) --
 function lintDesignTokens() {
   const cfg = read('sdd.config.yml') || ''
-  if (/^ui:\s*false\b/m.test(cfg)) return
+  if (cfgFlag(cfg, 'capabilities', 'ui') !== true) return
   if (!existsSync('src')) return
   const hex = /#[0-9a-fA-F]{6}\b/
   const walk = (d) => {
