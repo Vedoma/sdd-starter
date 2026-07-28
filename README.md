@@ -1,4 +1,4 @@
-# SDD Starter — Spec-Driven Development scaffold
+# SDD Starter — Spec-Driven Development Scaffold
 
 > **Principle:** the specification is the single source of truth. Code serves the spec —
 > the spec never serves the code.
@@ -7,7 +7,7 @@ A ready-to-use, MIT-licensed scaffold for **Spec-Driven Development**: plain Mar
 no CLI, no runtime, no lock-in. Clone it, declare what you're building, and drive a project
 from idea to implementation with every decision traceable and every rule enforced in CI.
 
-## Why this exists — control the ideas, not the code
+## Why This Exists — Control the Ideas, Not the Code
 
 When an LLM can generate more code than you can read, reviewing code line-by-line stops
 scaling. The leverage moves **up a level** — to the ideas the code must satisfy: the
@@ -20,12 +20,21 @@ the same rigor as code — immutable decisions, an amendment process, and CI gat
 block a non-compliant PR rather than trusting an agent to remember the rules. That is what
 "Idea as code" means here.
 
-## The two-mode lifecycle
+## The Two-Mode Lifecycle
 
-```
-GREENFIELD BOOTSTRAP                         CHANGE-BASED SUSTAIN (post-MVP / brownfield)
-brief → prd → spec (+design) → adr → plan  ──►  living spec  ◄──  CHANGE-NNNN (delta) → archive
-        → implement                            docs/spec/**        docs/changes/**
+```mermaid
+flowchart TD
+    subgraph GF["Greenfield Bootstrap"]
+        direction LR
+        brief --> prd --> spec["spec (+ design)"] --> adr --> plan --> implement
+    end
+    GF ==> LIVING[["Living spec (docs/spec/**)"]]
+    subgraph SUS["Change-Based Sustain (post-MVP / brownfield)"]
+        direction LR
+        delta["CHANGE-NNNN (delta)"] --> arch["archive"]
+    end
+    LIVING --> delta
+    delta -. "folds back in" .-> LIVING
 ```
 
 - **Greenfield** builds the initial living spec, phase by phase.
@@ -35,7 +44,7 @@ brief → prd → spec (+design) → adr → plan  ──►  living spec  ◄�
   the active tree, not the history) without losing the audit trail. See
   [`docs/changes/`](./docs/changes/).
 
-## Repository structure
+## Repository Structure
 
 ```
 .
@@ -58,7 +67,7 @@ brief → prd → spec (+design) → adr → plan  ──►  living spec  ◄�
 ├── src/  tests/                  ← implementation
 ```
 
-## The workflow
+## The Workflow
 
 Each phase has a command (Claude Code: [`.claude/commands/`](./.claude/commands/)) backed
 by a tool-agnostic prompt (any agent: [`prompts/`](./prompts/)):
@@ -76,7 +85,7 @@ Agents draft; humans accept. Every generated document marks inferences
 `[INFERRED - CONFIRM]` and gaps `[OPEN - REQUIRES INPUT]` rather than guessing. See
 [`AGENTS.md`](./AGENTS.md).
 
-## Getting started
+## Getting Started
 
 1. **Clone and rename** this repo.
 2. **Declare your project** in [`sdd.config.yml`](./sdd.config.yml) - set `capabilities`
@@ -91,7 +100,7 @@ Agents draft; humans accept. Every generated document marks inferences
    [`.github/PULL_REQUEST_TEMPLATE.md`](./.github/PULL_REQUEST_TEMPLATE.md); the Spec
    Reference is mandatory and CI-enforced.
 
-## Landing zone for a forge-md bundle
+## Landing Zone for a forge-md Bundle
 
 This scaffold is the downstream half of a pipeline. The
 [**forge-md**](https://github.com/Vedoma/forge-md) workbench takes an idea through
@@ -114,7 +123,7 @@ spec overreach is a defect; accepted specs are never edited silently (use the
 tests derive from acceptance criteria; no secrets in the repo; every change is reviewable
 and reversible. Read the constitution for the full, enforceable list.
 
-## Choosing what's mandatory
+## Choosing What's Mandatory
 
 No team-size tiers. Which documents are required is a real, machine-read setting driven by
 two honest axes in [`sdd.config.yml`](./sdd.config.yml): **capabilities** - what the project
