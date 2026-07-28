@@ -1,0 +1,103 @@
+name: Create follow-up issue
+
+# Turns a comment into a tracked follow-up issue. Comment `/create-followup` and the
+# bot summarizes "the comment you are answering" into a new issue labelled `follow-up`,
+# links back, and confirms on the thread. Two ways to point at the source comment:
+#   - reply `/create-followup` under a PR review (code) comment  -> reads that parent
+#   - use GitHub "Quote reply", then `/create-followup`          -> reads the quoted text
+# You may add an extra note after the command; it is included in the issue.
+#
+# Write/admin commenters only. All comment text is passed to the script via env vars
+# (never shell-interpolated); see .github/scripts/create-followup.mjs.
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  create-followup:
+    if: contains(github.event.comment.body, '/create-followup')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify commenter has write access
+        id: auth
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          perm=$(gh api "repos/${{ github.repository }}/collaborators/${{ github.event.comment.user.login }}/permission" --jq '.permission' 2>/dev/null || echo none)
+          echo "Commenter permission: $perm"
+          if [[ "$perm" == "admin" || "$perm" == "write" ]]; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout (for the script)
+        if: steps.auth.outputs.ok == 'true'
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        if: steps.auth.outputs.ok == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Resolve source and build issue content
+        if: steps.auth.outputs.ok == 'true'
+        id: build
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT: ${{ github.event_name }}
+          REPO: ${{ github.repository }}
+          IN_REPLY_TO: ${{ github.event.comment.in_reply_to_id }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          ACTOR: ${{ github.event.comment.user.login }}
+          COMMENT_URL: ${{ github.event.comment.html_url }}
+          CONTEXT_NUMBER: ${{ github.event.issue.number || github.event.pull_request.number }}
+        run: |
+          # A review-thread reply carries in_reply_to_id -> fetch the parent as the source.
+          SOURCE_RAW=""
+          if [[ "$EVENT" == "pull_request_review_comment" && -n "$IN_REPLY_TO" ]]; then
+            SOURCE_RAW=$(gh api "repos/$REPO/pulls/comments/$IN_REPLY_TO" --jq '.body' 2>/dev/null || echo "")
+          fi
+          export SOURCE_RAW
+          export BODY_FILE="$RUNNER_TEMP/followup-body.md"
+          node .github/scripts/create-followup.mjs
+
+      - name: Report an unusable command
+        if: steps.auth.outputs.ok == 'true' && steps.build.outputs.ok == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          NUM: ${{ github.event.issue.number || github.event.pull_request.number }}
+          MSG: ${{ steps.build.outputs.error }}
+        run: gh issue comment "$NUM" --repo "$REPO" --body "$MSG"
+
+      - name: Create the follow-up issue
+        if: steps.auth.outputs.ok == 'true' && steps.build.outputs.ok == 'true'
+        id: create
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          TITLE: ${{ steps.build.outputs.title }}
+        run: |
+          gh label create "follow-up" --repo "$REPO" --color "d4c5f9" --description "Spun off from a review or discussion comment" 2>/dev/null || true
+          url=$(gh issue create --repo "$REPO" --title "$TITLE" --label "follow-up" --body-file "$RUNNER_TEMP/followup-body.md")
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+      - name: Confirm on the thread
+        if: steps.auth.outputs.ok == 'true' && steps.build.outputs.ok == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          NUM: ${{ github.event.issue.number || github.event.pull_request.number }}
+          NEWURL: ${{ steps.create.outputs.url }}
+          ACTOR: ${{ github.event.comment.user.login }}
+        run: gh issue comment "$NUM" --repo "$REPO" --body "Created follow-up: $NEWURL (requested by @$ACTOR)."
