@@ -1,0 +1,30 @@
+name: spec-lint
+
+# Enforces the SDD constitution mechanically: a non-compliant PR cannot merge.
+# The check runs against the active tree (archives are ignored) and maps each
+# finding to a constitution.md clause. See scripts/spec-lint.mjs.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  spec-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Run spec-lint
+        env:
+          # The PR body is passed via env (never inline) so the Spec Reference
+          # check can run without shell interpolation.
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: node scripts/spec-lint.mjs
