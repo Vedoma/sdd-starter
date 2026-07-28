@@ -4,7 +4,7 @@
 > the spec never serves the code.
 
 A ready-to-use, MIT-licensed scaffold for **Spec-Driven Development**: plain Markdown,
-no CLI, no runtime, no lock-in. Clone it, pick a ceremony profile, and drive a project
+no CLI, no runtime, no lock-in. Clone it, declare what you're building, and drive a project
 from idea to implementation with every decision traceable and every rule enforced in CI.
 
 ## Why this exists — control the ideas, not the code
@@ -41,7 +41,7 @@ brief → prd → spec (+design) → adr → plan  ──►  living spec  ◄�
 .
 ├── constitution.md               ← binding principles + their enforcement (read first)
 ├── SPEC_VERSION.md               ← spec version + amendment log
-├── sdd.config.yml                ← ceremony profile (which docs are mandatory)
+├── sdd.config.yml                ← capabilities + process (which docs are mandatory)
 ├── AGENTS.md                     ← operating manual for AI agents
 ├── docs/
 │   ├── product/                  ← brief.md, prd.md
@@ -79,8 +79,9 @@ Agents draft; humans accept. Every generated document marks inferences
 ## Getting started
 
 1. **Clone and rename** this repo.
-2. **Pick a profile** in [`sdd.config.yml`](./sdd.config.yml) (`solo` / `team` /
-   `enterprise`; set `ui: false` for a CLI/library/data project).
+2. **Declare your project** in [`sdd.config.yml`](./sdd.config.yml) - set `capabilities`
+   (`ui` / `api` / `data`) and `process` (`prd` / `milestones`); that decides which docs
+   are mandatory.
 3. **Read [`constitution.md`](./constitution.md)** — the rules `spec-lint` enforces.
 4. **Enable the local hook** (optional): `git config core.hooksPath .githooks`.
 5. **Start at `/brief`** (or, for an existing codebase, write a minimal
@@ -113,13 +114,15 @@ spec overreach is a defect; accepted specs are never edited silently (use the
 tests derive from acceptance criteria; no secrets in the repo; every change is reviewable
 and reversible. Read the constitution for the full, enforceable list.
 
-## Scaling this repo
+## Choosing what's mandatory
 
-Ceremony is a real setting, not advice: pick a **profile** (`solo` / `team` /
-`enterprise`) in [`sdd.config.yml`](./sdd.config.yml) and `spec-lint` enforces exactly the
-documents that profile requires. A solo project is never failed for lacking enterprise
-documents; a non-UI project sets `ui: false` to drop the design spec. See
-[`docs/profiles.md`](./docs/profiles.md) for the full matrix.
+No team-size tiers. Which documents are required is a real, machine-read setting driven by
+two honest axes in [`sdd.config.yml`](./sdd.config.yml): **capabilities** - what the project
+is (`ui` → design spec, `api` → api-contracts, `data` → data-model) - and **process** - how
+much planning you want (`prd`, `milestones`). The core (brief, technical-spec, backlog) is
+always required; `spec-lint` enforces exactly what the config resolves to. A data-less CLI
+is never asked for a data model; a solo UI app still gets its design spec. See
+[`docs/profiles.md`](./docs/profiles.md) for the model and starting points.
 
 ## License
 
