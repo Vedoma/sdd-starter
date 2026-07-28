@@ -100,4 +100,5 @@ jobs:
           NUM: ${{ github.event.issue.number || github.event.pull_request.number }}
           NEWURL: ${{ steps.create.outputs.url }}
           ACTOR: ${{ github.event.comment.user.login }}
-        run: gh issue comment "$NUM" --repo "$REPO" --body "Created follow-up: $NEWURL (requested by @$ACTOR)."
+        run: |
+          gh issue comment "$NUM" --repo "$REPO" --body "Created follow-up: $NEWURL (requested by @$ACTOR)."
