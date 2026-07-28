@@ -77,11 +77,11 @@ and reversible. Read the constitution for the full, enforceable list.
 
 ## Scaling This Repo
 
-| Project Size | Mandatory | Optional |
-|---|---|---|
-| Solo / Small Tool | Brief, Tech Spec, 1–3 ADRs, Backlog | PRD, Data Model (inline in spec is fine) |
-| Team / Mid-size App | All documents | Split spec by domain |
-| Enterprise | All documents + ADR registry + change control | Per-service spec files |
+Ceremony is a real setting, not advice: pick a **profile** (`solo` / `team` /
+`enterprise`) in [`sdd.config.yml`](./sdd.config.yml) and `spec-lint` enforces exactly the
+documents that profile requires. A solo project is never failed for lacking enterprise
+documents; a non-UI project sets `ui: false` to drop the design spec. See
+[`docs/profiles.md`](./docs/profiles.md) for the full matrix.
 
 ---
 
