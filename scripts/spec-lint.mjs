@@ -18,6 +18,14 @@ const err = (clause, msg) => errors.push(`[${clause}] ${msg}`)
 const warn = (clause, msg) => warnings.push(`[${clause}] ${msg}`)
 const read = (p) => (existsSync(p) ? readFileSync(p, 'utf8') : null)
 
+// A pristine scaffold is not a project yet: its spec is still the template. The
+// project-level checks (mandatory documents, PR Spec Reference) only make sense once the
+// repo is a real project, so they stay off in the sdd-starter repo itself and activate the
+// moment docs/spec/technical-spec.md is filled in. Structural checks (ADR index, design
+// tokens) run regardless.
+const isScaffold = () => (read('docs/spec/technical-spec.md') || '').includes('[Product Name]')
+const SCAFFOLD = isScaffold()
+
 // ---- 1. Capabilities + process: mandatory documents present (C1) ----------------
 // Read a boolean `key` under a top-level `block:` in sdd.config.yml. Hand-rolled
 // because the scaffold ships no YAML dependency. Returns true / false / undefined.
@@ -69,9 +77,10 @@ function requiredDocs() {
   }
   return [...req]
 }
-for (const doc of requiredDocs()) {
-  if (!existsSync(doc)) err('C1', `required document missing (per sdd.config.yml): ${doc}`)
-}
+if (!SCAFFOLD)
+  for (const doc of requiredDocs()) {
+    if (!existsSync(doc)) err('C1', `required document missing (per sdd.config.yml): ${doc}`)
+  }
 
 // ---- 2. Backlog tasks: Spec Reference + >=2 acceptance criteria (C1, C5) ----------
 function lintTaskFile(path) {
@@ -119,7 +128,7 @@ function lintAdrIndex() {
 lintAdrIndex()
 
 // ---- 4. PR carries a filled Spec Reference (C1) -----------------------------------
-if (process.env.PR_BODY != null) {
+if (!SCAFFOLD && process.env.PR_BODY != null) {
   const body = process.env.PR_BODY
   const m = body.match(/\*\*Spec Reference\*\*\s*\|\s*(.+)/)
   const val = m ? m[1].trim() : ''
@@ -149,6 +158,10 @@ function lintDesignTokens() {
 lintDesignTokens()
 
 // ---- report ----------------------------------------------------------------------
+if (SCAFFOLD)
+  console.log(
+    'note    scaffold mode: docs/spec/technical-spec.md is still the template, so project-level checks (mandatory docs, PR Spec Reference) are skipped until it is filled in.'
+  )
 for (const w of warnings) console.log(`warning ${w}`)
 for (const e of errors) console.log(`error   ${e}`)
 if (errors.length) {
