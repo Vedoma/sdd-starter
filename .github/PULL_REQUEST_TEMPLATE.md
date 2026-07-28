@@ -4,6 +4,7 @@
 Every PR must fill in this template. Incomplete templates block merge.
 Rule: If you implemented anything not in the spec, or differently than specified,
 document it in "Spec Deviations" below — never leave it undocumented.
+This PR must comply with constitution.md; the checks there gate merge.
 -->
 
 ### References
