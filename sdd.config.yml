@@ -1,57 +1,38 @@
 # Ceremony configuration for this project.
 #
-# spec-lint (.github/workflows/spec-lint.yml) reads this file to decide which SDD
-# documents are MANDATORY. Pick the profile that matches your project's size, and set
-# `ui` for whether a design spec applies. A `solo` project is never failed for missing
-# `team`/`enterprise` documents.
+# spec-lint (.github/workflows/spec-lint.yml) reads this to decide which SDD documents
+# are MANDATORY. There are no team-size tiers: a document is required because of what the
+# project IS (its shape) or because you chose a planning ceremony - never because of how
+# many people work on it.
+#
+# Always required (the methodology's irreducible core):
+#   docs/product/brief.md, docs/spec/technical-spec.md, docs/plan/backlog.md
 
-profile: team # solo | team | enterprise
-ui: true # false for CLI / library / data-pipeline projects -> the design spec is not required
+# What the project IS - gates the technical documents:
+capabilities:
+  ui: false # a user interface       -> docs/design/design.md required
+  api: false # a network/public API   -> docs/spec/api-contracts.md required
+  data: false # persistent data        -> docs/spec/data-model.md required
 
-# Force a specific document required/optional regardless of the profile.
+# How much planning ceremony you want - gates the two process documents:
+process:
+  prd: false # require docs/product/prd.md (a formal PRD before the spec)
+  milestones: false # require docs/plan/milestones.md (a phased roadmap)
+
+# Force a specific document required/optional regardless of the above.
 overrides:
-  # docs/design/design.md: required
+  # docs/product/prd.md: required
+  # docs/design/design.md: optional
 
-# --- Profile definitions (the mandatory-doc matrix) --------------------------------
-profiles:
-  solo:
-    required:
-      - docs/product/brief.md
-      - docs/spec/technical-spec.md
-      - docs/plan/backlog.md
-    optional:
-      - docs/product/prd.md
-      - docs/spec/data-model.md
-      - docs/spec/api-contracts.md
-      - docs/plan/milestones.md
-      - docs/design/design.md
-
-  team:
-    required:
-      - docs/product/brief.md
-      - docs/product/prd.md
-      - docs/spec/technical-spec.md
-      - docs/spec/data-model.md
-      - docs/spec/api-contracts.md
-      - docs/plan/milestones.md
-      - docs/plan/backlog.md
-    optional:
-      - docs/design/design.md
-
-  enterprise:
-    required:
-      - docs/product/brief.md
-      - docs/product/prd.md
-      - docs/spec/technical-spec.md
-      - docs/spec/data-model.md
-      - docs/spec/api-contracts.md
-      - docs/design/design.md
-      - docs/plan/milestones.md
-      - docs/plan/backlog.md
-    optional: []
-
-# Resolution (implemented by spec-lint):
-#   required = profiles[profile].required
-#            + (docs/design/design.md if ui: true and the profile lists it optional/required)
-#            +/- overrides
-#   When ui: false, docs/design/design.md is dropped from required even for enterprise.
+# --- Resolution (implemented by spec-lint) ------------------------------------------
+# required =
+#     docs/product/brief.md, docs/spec/technical-spec.md, docs/plan/backlog.md   (always)
+#   + docs/product/prd.md          if process.prd
+#   + docs/plan/milestones.md      if process.milestones
+#   + docs/design/design.md        if capabilities.ui
+#   + docs/spec/api-contracts.md   if capabilities.api
+#   + docs/spec/data-model.md      if capabilities.data
+#   +/- overrides
+#
+# The defaults above are LEAN: a fresh clone only requires the core, so it feels light.
+# Turn a flag to `true` as the project takes shape. Starting points are in docs/profiles.md.

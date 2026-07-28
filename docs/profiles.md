@@ -1,34 +1,54 @@
-# Ceremony Profiles
+# Ceremony & Capabilities
 
-Not every project needs every document. The **profile** in
-[`sdd.config.yml`](../sdd.config.yml) selects how much ceremony this repo enforces;
-`spec-lint` reads it to decide which documents are mandatory. A profile is a real,
-machine-read setting - not just advice in a table - so a solo project is never failed for
-lacking enterprise documents.
+Not every project needs every document. Which SDD documents are **mandatory** is decided
+by [`sdd.config.yml`](../sdd.config.yml), and `spec-lint` enforces exactly that set. There
+are deliberately **no team-size tiers** (no solo/team/enterprise): a document is required
+because of *what the project is* or *how much planning you want* - never because of how
+many people work on it.
 
-## The profiles
+## The three kinds of document
 
-| Document | solo | team | enterprise |
-| --- | --- | --- | --- |
-| `product/brief.md` | required | required | required |
-| `product/prd.md` | optional | required | required |
-| `spec/technical-spec.md` | required | required | required |
-| `spec/data-model.md` | optional | required | required |
-| `spec/api-contracts.md` | optional | required | required |
-| `design/design.md` | optional* | optional* | required* |
-| `plan/milestones.md` | optional | required | required |
-| `plan/backlog.md` | required | required | required |
+**Core - always required.** The irreducible minimum the whole methodology hinges on:
 
-\* The design spec is gated by the `ui` flag: for a CLI, library, or data-pipeline project
-set `ui: false` and the design spec is never required, even on `enterprise`.
+- `docs/product/brief.md`
+- `docs/spec/technical-spec.md` (the single source of truth)
+- `docs/plan/backlog.md`
 
-- **solo** - the smallest honest loop: a brief, a technical spec, and a backlog. Add the
-  rest only when a real need appears.
-- **team** - the full document set so multiple contributors share one source of truth.
-- **enterprise** - everything, including the design spec, for regulated or multi-team work.
+**Shape - gated by `capabilities`.** Required based on what the project actually is:
 
-## Changing profile
+| Capability | Requires | Set it when the project has... |
+| --- | --- | --- |
+| `ui` | `docs/design/design.md` | a user interface (design tokens, components, a11y) |
+| `api` | `docs/spec/api-contracts.md` | a network or public API surface |
+| `data` | `docs/spec/data-model.md` | persistent data (a database, schemas) |
 
-Edit `profile:` (and `ui:`) in `sdd.config.yml`. Use `overrides:` to force a single
-document required or optional regardless of the profile - e.g. a solo project that still
-wants a data model. spec-lint enforces exactly what this file resolves to.
+**Process - gated by `process`.** Required based on how much planning ceremony you want:
+
+| Toggle | Requires |
+| --- | --- |
+| `prd` | `docs/product/prd.md` (a formal PRD before the spec) |
+| `milestones` | `docs/plan/milestones.md` (a phased roadmap) |
+
+`spec-lint` requires: **core** + each enabled capability's doc + each enabled process doc,
+adjusted by `overrides`.
+
+## Why no solo/team/enterprise
+
+Team size is a weak proxy for "do you want a PRD" and a misleading one for everything else.
+A solo developer building a UI app needs a design spec (they *are* the design team); a
+large team building a data-less CLI does not need a data model. And the governance that a
+"tier" used to imply - immutable ADRs, the amendment process, the constitution, spec-lint -
+applies to **every** project here by design. So the only honest knobs left are *shape* and
+*planning ceremony*, which is exactly what this config exposes.
+
+## Starting points (guidance, not enforced tiers)
+
+Copy one of these into `sdd.config.yml` and adjust:
+
+- **Quick tool / script:** everything `false` - just brief + spec + backlog.
+- **Solo web app:** `ui: true`; the rest `false` (add `data`/`api` if it grows a DB or API).
+- **API service:** `api: true`, `data: true`; `ui: false`.
+- **Team SaaS:** `ui: true`, `api: true`, `data: true`, `prd: true`, `milestones: true`.
+- **Library:** everything `false` (set `api: true` if you want the public API contracted).
+
+Use `overrides` to force a single document required or optional regardless of the flags.
