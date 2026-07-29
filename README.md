@@ -1,3 +1,8 @@
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/829073be-f3ea-4a9c-acab-a19c51efa288">
+  <img src="https://github.com/user-attachments/assets/113b2697-0b3c-41ab-8910-77a21bbf9b5b" alt="sdd-starter">
+</picture>
+
 # SDD Starter — Spec-Driven Development Scaffold
 
 > **Principle:** the specification is the single source of truth. Code serves the spec —
