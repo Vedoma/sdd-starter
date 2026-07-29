@@ -1,6 +1,6 @@
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/829073be-f3ea-4a9c-acab-a19c51efa288">
-  <img src="https://github.com/user-attachments/assets/113b2697-0b3c-41ab-8910-77a21bbf9b5b" alt="sdd-starter">
+  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/95ff5615-ddd6-44b3-8b12-897fd59e171e">
+  <img src="https://github.com/user-attachments/assets/7755f537-a930-417f-8735-3515909dda6d" alt="sdd-starter">
 </picture>
 
 # SDD Starter — Spec-Driven Development Scaffold
