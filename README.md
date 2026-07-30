@@ -30,8 +30,8 @@ block a non-compliant PR rather than trusting an agent to remember the rules. Th
 ## The Two-Mode Lifecycle
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/60ec6901-d4e4-475d-a6f5-0793044db2bc">
-  <img src="https://github.com/user-attachments/assets/ede64b92-bba5-4bca-8786-7f1f8ef8c873" alt="The two-mode lifecycle">
+  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/efd3617d-cb12-4bb7-8000-ea47007f83ec">
+  <img src="https://github.com/user-attachments/assets/89886691-1427-42d1-899b-ab0817eda194" alt="The two-mode lifecycle">
 </picture>
 
 - **Greenfield** builds the initial living spec, phase by phase.
