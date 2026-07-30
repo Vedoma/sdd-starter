@@ -10,17 +10,17 @@ entirely a settings-level guarantee.
 
 ## 1. Required status checks
 
-Add all four as required checks on the default branch. Names match the `name:` field of
-each workflow:
+Add this as a required check on the default branch. The name matches the workflow's
+`name:` field:
 
 | Check | Workflow | Enforces |
 | --- | --- | --- |
-| `spec-lint` | [spec-lint.yml](../.github/workflows/spec-lint.yml) | C1, C3, C4, C5 |
-| `self-test` | [self-test.yml](../.github/workflows/self-test.yml) | that spec-lint itself still works |
-| `secret-scan` | [secret-scan.yml](../.github/workflows/secret-scan.yml) | C7 |
+| `spec-lint` | [spec-lint.yml](../.github/workflows/spec-lint.yml) | the checked part of C1 and C5 |
 
-`self-test` matters more than it looks: without it, a change that breaks the linter turns
-every other check into a pass.
+That is currently the **only** merge-blocking check in the repository. Read the `Status`
+column in [`constitution.md`](../constitution.md) before assuming a clause is covered:
+C3, C4 and C7 name mechanisms that do not exist yet, so requiring this one check does not
+make the constitution enforced — it makes one clause and a half enforced.
 
 ## 2. Branch protection / ruleset on the default branch
 
@@ -48,12 +48,14 @@ Read the warning in that file first: GitHub silently ignores a rule naming an ow
 cannot review the repository, so a placeholder handle plus this setting yields a gate that
 appears enabled and enforces nothing.
 
-## 4. Secret scanning license (organisation-owned repos only)
+## 4. Secret scanning (C7) — not yet wired
 
-`gitleaks-action` v2 is free for public and personal repositories. **Organisation-owned**
-repositories require a paid `GITLEAKS_LICENSE` repository secret. If you do not have one,
-switch `secret-scan.yml` to the license-free container invocation documented in its header
-comment — otherwise C7's gate will fail or be skipped rather than protect you.
+C7 says "no secrets in the repository" and names a CI secret scan as its enforcement, but
+**no such workflow exists in this repo**. Until one is added, C7 is a rule with no
+mechanism: nothing stops a committed credential.
+
+Enable GitHub's native push protection and secret scanning in the repository's Security
+settings as an interim measure, and treat adding a scanner to CI as outstanding work.
 
 ## 5. Local hook (each contributor, optional but recommended)
 
@@ -61,19 +63,32 @@ comment — otherwise C7's gate will fail or be skipped rather than protect you.
 git config core.hooksPath .githooks
 ```
 
-This runs `spec-lint` pre-commit with `STAGED=true`, which also activates the C3 amendment
-check against the staged index — catching an unamended edit to an accepted spec before the
-commit exists rather than in review.
+This runs `spec-lint` before each commit, so a finding surfaces locally rather than in
+review.
 
 ## 6. Actions permissions
 
 Default `GITHUB_TOKEN` permissions can stay read-only; each workflow requests exactly what
-it needs. Note that `adr-status.yml` requests `contents: write` in order to push a status
-commit to the PR branch, and deliberately executes its script from the **default branch**
-rather than from the pull request — see the comment on that step before changing it.
+it needs.
+
+One thing to know before enabling the `/adr` flow: `adr-status.yml` requests
+`contents: write`, checks out the **pull request's** branch, and then runs that branch's own
+copy of `.github/scripts/adr-status.mjs`. So a maintainer typing `/adr accept` executes
+PR-authored code with a write-scoped token. Cross-fork pull requests are rejected and the
+commenter must already have write access, which keeps the blast radius to existing
+collaborators — but "already trusted" is not a reason to hand a pull request a privileged
+token.
+
+Reading that script from the default branch instead is a small change and is **outstanding
+work**, not something this checklist can configure. Until it lands, treat `/adr accept` on a
+branch you have not reviewed as running code you have not reviewed.
 
 ## Verifying the setup
 
 Open a throwaway PR that deliberately violates a clause — e.g. add a backlog task with one
 acceptance criterion — and confirm the merge button is blocked, not merely annotated. A gate
 you have not watched fail is a gate you have not got.
+
+One trap while you do this: spec-lint skips the task checks for the whole of
+`docs/plan/backlog.md` if the string `[Task Title]` appears anywhere in it, and reports
+"passed" either way. Delete the shipped template block before you conclude the gate works.

@@ -58,15 +58,27 @@ A drafted artifact is a proposal. Present it and wait.
 
 ```
 constitution.md              # binding project principles (read first)
+CLAUDE.md                    # imports the constitution for Claude Code
 SPEC_VERSION.md              # spec version + amendment log
 docs/
   product/  spec/  design/  plan/  adr/  changes/
+  repo-setup.md              # GitHub settings the constitution assumes
   ecosystem/forge-md.md      # OPTIONAL: forge-md interop - delete if unused
 prompts/                     # tool-agnostic prompt bodies (one per phase)
 .claude/commands/            # Claude Code command wrappers over prompts/
-.github/                     # CI: adr-status, spec-lint, PR template
+.cursor/rules/               # same rules for Cursor
+.github/                     # copilot-instructions.md, CODEOWNERS, PR template, CI
+scripts/spec-lint.mjs        # the enforcement backbone
 src/  tests/                 # implementation
 ```
+
+## What is actually enforced
+
+Run `node scripts/spec-lint.mjs` before proposing a commit; each finding names the clause
+it enforces. But **read the `Status` column in `constitution.md` before assuming a rule is
+machine-checked** — C3, C6 and C7 currently name mechanisms that do not exist, and C1's
+Spec Reference check verifies presence, not that the reference resolves. Those clauses
+still bind you; they are simply enforced by you and the reviewer rather than by CI.
 
 ## Non-negotiables (see constitution.md for the full list + enforcement)
 

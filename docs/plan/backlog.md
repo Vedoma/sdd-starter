@@ -138,10 +138,12 @@ Increment task numbers sequentially across all milestones.
 ### TASK-004: [Task Title]
 
 <!--
-TEMPLATE BLOCK - copy it for each real task, then delete this one.
-While the title placeholder above remains, spec-lint skips this block's checks and says
-so as a warning, so an unfilled template task can never be mistaken for a real, passing
-one. Fill it in or delete it.
+TEMPLATE BLOCK - copy it for each real task, then DELETE this one.
+
+Deleting it matters more than it looks: spec-lint skips the task checks for this WHOLE
+FILE while the "[Task Title]" placeholder appears anywhere in it, and it does so
+silently. Leave this block in place and your real tasks are not checked for a Spec
+Reference or for acceptance criteria, while spec-lint still reports "passed".
 -->
 
 
