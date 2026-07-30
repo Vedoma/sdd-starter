@@ -1,0 +1,13 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Discussion — how are you using the scaffold?
+    url: https://github.com/Vedoma/sdd-starter/discussions
+    about: |
+      Adaptations, workflow variants, "here is what we changed for our team", or a
+      proposal that is not yet ready to be an issue.
+  - name: Security concern
+    url: https://github.com/Vedoma/sdd-starter/security/advisories/new
+    about: Report a security issue privately. Do not open a public issue.
+  - name: Docs on the landing page
+    url: https://vedoma.tech/sdd-starter
+    about: Concept, the pipeline, three phases, quickstart, and FAQ.

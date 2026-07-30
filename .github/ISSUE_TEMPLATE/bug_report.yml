@@ -1,0 +1,80 @@
+name: Bug report
+description: Something in the scaffold does not work as documented.
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. **Please do not use this form for security issues** —
+        see [`SECURITY.md`](https://github.com/Vedoma/sdd-starter/blob/main/SECURITY.md)
+        instead.
+
+        Before filing, search open and closed issues to check for duplicates.
+
+  - type: input
+    id: file
+    attributes:
+      label: File or component
+      description: Which file, script, workflow, prompt, or template misbehaves?
+      placeholder: e.g. scripts/spec-lint.mjs, .github/workflows/adr-status.yml, prompts/spec.md
+    validations:
+      required: true
+
+  - type: textarea
+    id: what_happened
+    attributes:
+      label: What happened?
+      description: Describe the actual behavior, including any error messages you saw.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+      description: What did the docs or the scaffold's own conventions lead you to expect?
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: |
+        The exact commands or actions that trigger the bug. If you can, include a
+        minimal case; a linked branch or gist is fine too.
+      placeholder: |
+        1. Clone the scaffold at commit …
+        2. Run `node scripts/spec-lint.mjs`
+        3. …
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Scaffold version / commit
+      description: |
+        The tag, release, or commit SHA you cloned. If unknown, `git rev-parse HEAD`
+        from your clone.
+      placeholder: v0.1.0 / 5e97c53
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, shell, Node version if relevant. Skip fields that do not apply.
+      placeholder: macOS 14.5, zsh, Node 20.11.0
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and did not find a duplicate.
+          required: true
+        - label: This is a scaffold bug — not a security issue (see SECURITY.md if it is).
+          required: true

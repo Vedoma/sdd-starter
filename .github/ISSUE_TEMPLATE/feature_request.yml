@@ -1,0 +1,82 @@
+name: Feature request
+description: Propose an addition or change to the scaffold.
+title: "[Feature] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting an improvement. **If the shape of the change isn't obvious
+        yet**, please open a [Discussion](https://github.com/Vedoma/sdd-starter/discussions)
+        first — issues are better once the outline is settled.
+
+        Read [`constitution.md`](https://github.com/Vedoma/sdd-starter/blob/main/constitution.md)
+        first if you have not already. It sets which changes are compatible with the
+        scaffold's principles and which would be constitutional amendments.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which part of the scaffold?
+      options:
+        - Prompt (prompts/*.md)
+        - Workflow / phase (adds or restructures a phase)
+        - Template (docs/*/**.md)
+        - Constitution (a new or changed principle — heavier bar)
+        - CI / spec-lint
+        - Agent-instruction file (CLAUDE.md / .cursor / copilot-instructions.md)
+        - Documentation (README, AGENTS.md, CONTRIBUTING.md, etc.)
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: |
+        What breaks or feels wrong today? A concrete case is more useful than a
+        general "would be nice to have".
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: |
+        What would you add, remove, or change? If it touches a prompt, workflow, or
+        template, sketch the diff or link a branch.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What other approaches did you think about, and why is this one better?
+
+  - type: dropdown
+    id: constitution
+    attributes:
+      label: Constitution impact
+      description: |
+        Does the change require touching `constitution.md`? A change to a principle is
+        a constitutional amendment, not an ADR — heavier bar.
+      options:
+        - No — additive within existing principles
+        - Yes — a new principle
+        - Yes — modifies an existing principle
+        - Not sure
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and discussions and did not find a duplicate.
+          required: true
+        - label: I have read `constitution.md` and confirmed which principles this touches.
+          required: true
