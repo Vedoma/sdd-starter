@@ -29,7 +29,7 @@ enforcement mechanism, the same discipline the ADR template's Compliance section
 | C5 | **Tests are derived from acceptance criteria,** not from the implementation. | PR review checklist; tests reference the TASK/AC they cover |
 | C6 | **Accessibility is a release gate,** not a nice-to-have, for any user-facing surface. | spec-lint / CI a11y check (e.g. axe/pa11y) on UI profiles |
 | C7 | **No secrets in the repository.** Credentials come from the environment. | CI secret scan (e.g. gitleaks) blocks merge |
-| C8 | **Every change is reviewable and reversible.** Atomic PRs; one ADR per PR; changes archived, never deleted. | branch protection + one-ADR-per-PR check + archive-hygiene lint |
+| C8 | **Every change is reviewable and reversible.** Atomic PRs; one ADR per PR; changes archived, never deleted. | branch protection per [`docs/repo-setup.md`](./docs/repo-setup.md) (a settings-level guarantee, not code) |
 | C9 | **Plain Markdown, zero lock-in.** Artifacts stay portable, self-hostable, tool-agnostic. | review; no proprietary/binary artifact formats introduced without an ADR |
 
 A principle whose enforcement is "review" (C2, C5, C9) is judgment-based - there is no full
