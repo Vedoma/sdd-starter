@@ -44,8 +44,8 @@ block a non-compliant PR rather than trusting an agent to remember the rules. Th
 ## Repository Structure
 
 <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/e436a8f2-c095-48e9-95d1-356e8ad5e1e0">
-    <img src="https://github.com/user-attachments/assets/059ce33d-65a2-494d-9147-c5d5674ddcf8" alt="Repository map">
+  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/e436a8f2-c095-48e9-95d1-356e8ad5e1e0">
+  <img src="https://github.com/user-attachments/assets/059ce33d-65a2-494d-9147-c5d5674ddcf8" alt="Repository map">
 </picture>
 
 ```
@@ -72,8 +72,8 @@ block a non-compliant PR rather than trusting an agent to remember the rules. Th
 ## The Workflow
 
 <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/a32495dc-f228-40c4-88ae-d74346ed0801">
-    <img src="https://github.com/user-attachments/assets/f8090e8d-63ee-420f-b4b3-f3e3c98b081d" alt="The workflow: six phases, one command each">
+  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/a32495dc-f228-40c4-88ae-d74346ed0801">
+  <img src="https://github.com/user-attachments/assets/f8090e8d-63ee-420f-b4b3-f3e3c98b081d" alt="The workflow: six phases, one command each">
 </picture>
 
 Each phase has a command (Claude Code: [`.claude/commands/`](./.claude/commands/)) backed
@@ -108,6 +108,11 @@ Agents draft; humans accept. Every generated document marks inferences
    Reference is mandatory and CI-enforced.
 
 ## Landing Zone for a forge-md Bundle
+
+<picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/d3e0f9f1-b98f-45b9-8776-97c095738b2b">
+    <img src="https://github.com/user-attachments/assets/5f81eb20-eec1-4d69-88f5-30b92b3247ba" alt="One pipeline, zero lock-in">
+</picture>
 
 This scaffold is the downstream half of a pipeline. The
 [**forge-md**](https://github.com/Vedoma/forge-md) workbench takes an idea through
