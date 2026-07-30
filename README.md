@@ -22,6 +22,11 @@ brief, the spec, the decisions, the acceptance criteria. That is not the end of 
 craftsmanship; it is craftsmanship applied where it now counts. (See antirez,
 [_Control the ideas, not the code_](https://antirez.com/news/169).)
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/d6b1690d-d95d-43aa-9124-b4cc5bde8dad">
+  <img src="https://github.com/user-attachments/assets/31357779-9819-43f3-a23f-06c9c065eef9" alt="Control the ideas, not the code">
+</picture>
+
 This scaffold makes those ideas first-class: **versioned, reviewable, and enforced** with
 the same rigor as code - immutable decisions, an amendment process, and CI gates that
 block a non-compliant PR rather than trusting an agent to remember the rules. That is what
