@@ -66,6 +66,11 @@ block a non-compliant PR rather than trusting an agent to remember the rules. Th
 
 ## The Workflow
 
+<picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/a32495dc-f228-40c4-88ae-d74346ed0801">
+    <img src="https://github.com/user-attachments/assets/f8090e8d-63ee-420f-b4b3-f3e3c98b081d" alt="The workflow: six phases, one command each">
+</picture>
+
 Each phase has a command (Claude Code: [`.claude/commands/`](./.claude/commands/)) backed
 by a tool-agnostic prompt (any agent: [`prompts/`](./prompts/)):
 
