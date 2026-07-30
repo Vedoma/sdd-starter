@@ -48,9 +48,11 @@ The constitution changes rarely and deliberately - a heavier bar than a spec ame
 4. If a principle changes, audit existing ADRs and specs for anything the change now
    contradicts, and open follow-up work for each.
 
-> **Open decision (confirm on the PR):** whether the amendment log lives here (proposed)
-> or as a `constitutional`-typed row in `SPEC_VERSION.md`. Proposed default: keep it here,
-> since the constitution's lifecycle differs from the spec's.
+The constitution's amendment log lives **in this file** (the Changelog below), not in
+`SPEC_VERSION.md`. The two artifacts have different lifecycles and different bars: a spec
+amendment is routine and frequent, a constitutional amendment should be rare and needs owner
+sign-off. Interleaving them in one log would blur that distinction and make "how often do
+our principles change?" unanswerable at a glance.
 
 ## Version
 
