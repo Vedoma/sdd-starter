@@ -6,24 +6,24 @@
 # SDD Starter - Spec-Driven Development Scaffold
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/597f4a81-31f7-4f04-abca-f63ec9ff6caa"">
-  <img src="https://github.com/user-attachments/assets/90e88983-3391-4908-a855-db3d896bdc3b" alt="Principle: the specification is the single source of truth.">
+  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/9fa10ca9-416a-4686-bc1e-9b0670ebb33f">
+  <img src="https://github.com/user-attachments/assets/c351dc30-1d8b-407c-b7b6-7212b6a038db" alt="Principle: the specification is the single source of truth.">
 </picture>
 
 A ready-to-use, MIT-licensed scaffold for **Spec-Driven Development**: plain Markdown,
 no CLI, no runtime, no lock-in. Clone it, declare what you're building, and drive a project
 from idea to implementation with every decision traceable and every rule enforced in CI.
 
-## Why This Exists — Control the Ideas, Not the Code
+## Why This Exists - Control the Ideas, Not the Code
 
 When an LLM can generate more code than you can read, reviewing code line-by-line stops
-scaling. The leverage moves **up a level** — to the ideas the code must satisfy: the
+scaling. The leverage moves **up a level** - to the ideas the code must satisfy: the
 brief, the spec, the decisions, the acceptance criteria. That is not the end of software
 craftsmanship; it is craftsmanship applied where it now counts. (See antirez,
 [_Control the ideas, not the code_](https://antirez.com/news/169).)
 
 This scaffold makes those ideas first-class: **versioned, reviewable, and enforced** with
-the same rigor as code — immutable decisions, an amendment process, and CI gates that
+the same rigor as code - immutable decisions, an amendment process, and CI gates that
 block a non-compliant PR rather than trusting an agent to remember the rules. That is what
 "Idea as code" means here.
 
@@ -35,7 +35,7 @@ block a non-compliant PR rather than trusting an agent to remember the rules. Th
 </picture>
 
 - **Greenfield** builds the initial living spec, phase by phase.
-- **Change-based** sustains it: after the spec is accepted you never edit it ad hoc —
+- **Change-based** sustains it: after the spec is accepted you never edit it ad hoc -
   every change is a delta (`ADDED` / `MODIFIED` / `REMOVED`) that folds into the living
   spec and is then archived. Archiving keeps an agent's working context small (it reads
   the active tree, not the history) without losing the audit trail. See
@@ -88,12 +88,12 @@ Agents draft; humans accept. Every generated document marks inferences
 2. **Declare your project** in [`sdd.config.yml`](./sdd.config.yml) - set `capabilities`
    (`ui` / `api` / `data`) and `process` (`prd` / `milestones`); that decides which docs
    are mandatory.
-3. **Read [`constitution.md`](./constitution.md)** — the rules `spec-lint` enforces.
+3. **Read [`constitution.md`](./constitution.md)** - the rules `spec-lint` enforces.
 4. **Enable the local hook** (optional): `git config core.hooksPath .githooks`.
 5. **Start at `/brief`** (or, for an existing codebase, write a minimal
    `docs/spec/technical-spec.md` of what is already true and drive changes through
    `docs/changes/`).
-6. **Work phase by phase** — do not implement ahead of an accepted spec. Every PR fills
+6. **Work phase by phase** - do not implement ahead of an accepted spec. Every PR fills
    [`.github/PULL_REQUEST_TEMPLATE.md`](./.github/PULL_REQUEST_TEMPLATE.md); the Spec
    Reference is mandatory and CI-enforced.
 
@@ -107,8 +107,8 @@ enter at `/implement`. The mapping is described in the optional
 [`docs/ecosystem/forge-md.md`](./docs/ecosystem/forge-md.md) (delete it if you never use
 forge-md).
 
-Nothing forces you upstream: this scaffold stands alone. Together they are one pipeline —
-collaborative spec review + a neutral public scaffold + a plain-Markdown handoff — with
+Nothing forces you upstream: this scaffold stands alone. Together they are one pipeline -
+collaborative spec review + a neutral public scaffold + a plain-Markdown handoff - with
 **zero lock-in at every layer**: self-hostable workbench, MIT scaffold, portable Markdown.
 
 ## Key Rules
