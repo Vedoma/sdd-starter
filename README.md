@@ -157,4 +157,9 @@ is never asked for a data model; a solo UI app still gets its design spec. See
 
 ## License
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/c3f4882d-6c5c-487a-97d8-93de04520344">
+  <img src="https://github.com/user-attachments/assets/8589c6e6-1528-4372-a755-8de2e37092af" alt="MIT License — free of charge, forever">
+</picture>
+
 MIT. Use it freely for commercial and open-source projects.
