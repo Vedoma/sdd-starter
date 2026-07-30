@@ -23,8 +23,8 @@ craftsmanship; it is craftsmanship applied where it now counts. (See antirez,
 [_Control the ideas, not the code_](https://antirez.com/news/169).)
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/d6b1690d-d95d-43aa-9124-b4cc5bde8dad">
-  <img src="https://github.com/user-attachments/assets/31357779-9819-43f3-a23f-06c9c065eef9" alt="Control the ideas, not the code">
+  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/8cbea053-2f5a-43c9-b70d-bd2a2aaf554a">
+  <img src="https://github.com/user-attachments/assets/64b8d284-dc5d-49a9-816a-ba538a20c3d6" alt="Control the ideas, not the code">
 </picture>
 
 This scaffold makes those ideas first-class: **versioned, reviewable, and enforced** with
