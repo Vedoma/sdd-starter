@@ -27,20 +27,10 @@ block a non-compliant PR rather than trusting an agent to remember the rules. Th
 
 ## The Two-Mode Lifecycle
 
-```mermaid
-flowchart TD
-    subgraph GF["Greenfield Bootstrap"]
-        direction LR
-        brief --> prd --> spec["spec (+ design)"] --> adr --> plan --> implement
-    end
-    GF ==> LIVING[["Living spec (docs/spec/**)"]]
-    subgraph SUS["Change-Based Sustain (post-MVP / brownfield)"]
-        direction LR
-        delta["CHANGE-NNNN (delta)"] --> arch["archive"]
-    end
-    LIVING --> delta
-    delta -. "folds back in" .-> LIVING
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/60ec6901-d4e4-475d-a6f5-0793044db2bc">
+  <img src="https://github.com/user-attachments/assets/ede64b92-bba5-4bca-8786-7f1f8ef8c873" alt="The two-mode lifecycle">
+</picture>
 
 - **Greenfield** builds the initial living spec, phase by phase.
 - **Change-based** sustains it: after the spec is accepted you never edit it ad hoc —
