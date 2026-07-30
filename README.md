@@ -127,6 +127,11 @@ and reversible. Read the constitution for the full, enforceable list.
 
 ## Choosing What's Mandatory
 
+<picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/a5541983-fa72-45ef-b287-ef1f38e21d7a">
+    <img src="https://github.com/user-attachments/assets/dc337fb5-f3b5-4e1e-b767-9b7e614034b5" alt="What's mandatory: core + capabilities + process">
+</picture>
+
 No team-size tiers. Which documents are required is a real, machine-read setting driven by
 two honest axes in [`sdd.config.yml`](./sdd.config.yml): **capabilities** - what the project
 is (`ui` → design spec, `api` → api-contracts, `data` → data-model) - and **process** - how
