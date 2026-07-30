@@ -43,6 +43,11 @@ block a non-compliant PR rather than trusting an agent to remember the rules. Th
 
 ## Repository Structure
 
+<picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/e436a8f2-c095-48e9-95d1-356e8ad5e1e0">
+    <img src="https://github.com/user-attachments/assets/059ce33d-65a2-494d-9147-c5d5674ddcf8" alt="Repository map">
+</picture>
+
 ```
 .
 ├── constitution.md               ← binding principles + their enforcement (read first)
