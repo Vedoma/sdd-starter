@@ -94,6 +94,11 @@ Agents draft; humans accept. Every generated document marks inferences
 
 ## Getting Started
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/062260cd-c97d-40bb-8c1b-3916b39d5601">
+  <img src="https://github.com/user-attachments/assets/bc778187-8a87-4c0e-acf0-d4e68fa25e57" alt="Your first 60 seconds: clone, declare, start">
+</picture>
+
 1. **Clone and rename** this repo.
 2. **Declare your project** in [`sdd.config.yml`](./sdd.config.yml) - set `capabilities`
    (`ui` / `api` / `data`) and `process` (`prd` / `milestones`); that decides which docs
