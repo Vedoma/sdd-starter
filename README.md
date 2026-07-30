@@ -3,10 +3,12 @@
   <img src="https://github.com/user-attachments/assets/7755f537-a930-417f-8735-3515909dda6d" alt="sdd-starter">
 </picture>
 
-# SDD Starter — Spec-Driven Development Scaffold
+# SDD Starter - Spec-Driven Development Scaffold
 
-> **Principle:** the specification is the single source of truth. Code serves the spec —
-> the spec never serves the code.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/597f4a81-31f7-4f04-abca-f63ec9ff6caa"">
+  <img src="https://github.com/user-attachments/assets/90e88983-3391-4908-a855-db3d896bdc3b" alt="Principle: the specification is the single source of truth.">
+</picture>
 
 A ready-to-use, MIT-licensed scaffold for **Spec-Driven Development**: plain Markdown,
 no CLI, no runtime, no lock-in. Clone it, declare what you're building, and drive a project
