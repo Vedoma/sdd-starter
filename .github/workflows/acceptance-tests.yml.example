@@ -1,0 +1,56 @@
+# Acceptance-test gate for the docs/spec/behavior/*.feature scenarios - TEMPLATE, not an
+# active workflow.
+#
+# Named .example on purpose: running Gherkin scenarios needs YOUR chosen runner, language,
+# build, and step definitions, and this scaffold does not know any of them. A workflow that
+# guessed would either fail on every clone or - worse - pass vacuously and report a green
+# behavioural gate for scenarios it never ran.
+#
+# Until you activate this, the behavioural spec is authored and reviewed but not enforced in
+# CI: "the scenarios are green" is a claim, not a checked fact.
+#
+# TO ACTIVATE
+#   1. Choose a runner (Cucumber, Behave, pytest-bdd, Playwright + cucumber, ...) and
+#      record the choice in an ADR. It reads docs/spec/behavior/*.feature and the step
+#      definitions in tests/acceptance/.
+#   2. Rename this file to acceptance-tests.yml.
+#   3. Fill in the install / build / serve steps for your stack, and the run command.
+#   4. Add `acceptance-tests` to the required status checks (see docs/repo-setup.md §1).
+#
+# Only meaningful once capabilities.behavior is true in sdd.config.yml.
+
+name: acceptance-tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  acceptance-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # --- FILL IN: set up your language / toolchain -------------------------------
+      # - uses: actions/setup-node@v4
+      #   with:
+      #     node-version: 22
+      # - run: npm ci
+
+      # --- FILL IN: build and start the app if the scenarios are end-to-end --------
+      # - run: npm run build
+      # - run: npm run start &
+      # - run: npx wait-on http://localhost:3000 --timeout 60000
+
+      - name: Run the acceptance scenarios
+        run: |
+          echo "::error::acceptance-tests.yml is still the unedited template - choose a runner and fill in the steps."
+          exit 1
+          # Replace the two lines above with your runner, for example:
+          #   npx cucumber-js docs/spec/behavior --require tests/acceptance
+          #   behave docs/spec/behavior
+          #   pytest tests/acceptance

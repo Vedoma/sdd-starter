@@ -19,7 +19,13 @@ This scaffold has two modes.
 | 3 Specification | `/spec`, `/design` | `docs/spec/*.md`, `docs/design/design.md` |
 | 4 Decisions | `/adr` | `docs/adr/ADR-NNNN-*.md` |
 | 5 Planning | `/plan` | `docs/plan/milestones.md`, `docs/plan/backlog.md` |
+| 5b Acceptance | `/acceptance TASK-XXX` | `docs/spec/behavior/*.feature` |
 | 6 Implementation | `/implement TASK-XXX` | `src/`, `tests/` |
+
+Phase 5b (when `capabilities.behavior` is on) turns a task's acceptance criteria into
+executable Gherkin scenarios **before** implementation, so `/implement` has an oracle to
+make pass rather than tests reverse-engineered from its own code (constitution C5). See
+[`docs/spec/behavior/`](./docs/spec/behavior/) and [`tests/`](./tests/).
 
 **Change-based sustain** (post-MVP / brownfield) - do not edit accepted specs ad hoc.
 Every change is a delta: `/change` opens `docs/changes/CHANGE-XXXX/`; on delivery the
@@ -61,11 +67,13 @@ constitution.md              # binding project principles (read first)
 SPEC_VERSION.md              # spec version + amendment log
 docs/
   product/  spec/  design/  plan/  adr/  changes/
+  spec/behavior/             # behavioural spec: Gherkin *.feature (executable acceptance)
   ecosystem/forge-md.md      # OPTIONAL: forge-md interop - delete if unused
 prompts/                     # tool-agnostic prompt bodies (one per phase)
 .claude/commands/            # Claude Code command wrappers over prompts/
 .github/                     # CI: adr-status, spec-lint, PR template
-src/  tests/                 # implementation
+src/                         # implementation
+tests/                       # acceptance/ (runs the .feature scenarios), integration/, unit/
 ```
 
 ## Non-negotiables (see constitution.md for the full list + enforcement)

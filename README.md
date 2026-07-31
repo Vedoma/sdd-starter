@@ -62,6 +62,7 @@ block a non-compliant PR rather than trusting an agent to remember the rules. Th
 ├── docs/
 │   ├── product/                  ← brief.md, prd.md
 │   ├── spec/                     ← technical-spec.md (SSoT), data-model.md, api-contracts.md
+│   │   └── behavior/             ← Gherkin *.feature: the executable acceptance spec
 │   ├── design/                   ← design.md (design system) + mockups/
 │   ├── adr/                      ← MADR decisions (ADR-0000-template.md) + index
 │   ├── plan/                     ← milestones.md, backlog.md (+ archive/)
@@ -71,7 +72,8 @@ block a non-compliant PR rather than trusting an agent to remember the rules. Th
 ├── .claude/commands/             ← Claude Code command wrappers over prompts/
 ├── .github/                      ← PR template + CI (adr-status, spec-lint)
 ├── scripts/spec-lint.mjs         ← the enforcement backbone
-├── src/  tests/                  ← implementation
+├── src/                          ← implementation
+├── tests/                        ← acceptance/ (runs the .feature scenarios), integration/, unit/
 ```
 
 ## The Workflow
@@ -91,6 +93,7 @@ by a tool-agnostic prompt (any agent: [`prompts/`](./prompts/)):
 | 3 | Specification | `/spec`, `/design` | `docs/spec/*.md`, `docs/design/design.md` |
 | 4 | Decisions | `/adr` | `docs/adr/ADR-NNNN-*.md` |
 | 5 | Planning | `/plan` | `docs/plan/milestones.md`, `docs/plan/backlog.md` |
+| 5b | Acceptance | `/acceptance TASK-XXX` | `docs/spec/behavior/*.feature` |
 | 6 | Implementation | `/implement TASK-XXX` | `src/`, `tests/` |
 
 Agents draft; humans accept. Every generated document marks inferences
