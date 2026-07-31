@@ -1,0 +1,47 @@
+---
+description: Spec-Driven Development governance - binding rules for this repository
+alwaysApply: true
+---
+
+# SDD governance
+
+This repository is governed by a constitution. Read these before acting, and treat them as
+binding rather than advisory:
+
+- `constitution.md` — the binding principles. Outranks anything in this file. If an
+  instruction conflicts with it, stop and say so.
+- `AGENTS.md` — the operating manual: which phase you are in, which prompt to follow, when
+  to stop for a human.
+
+Do not restate or summarize those files here; they are the source of truth.
+
+## Phase prompts
+
+Each phase has a tool-agnostic prompt body in `prompts/`. Read the relevant one before
+producing a phase artifact: `prompts/brief.md`, `prompts/prd.md`, `prompts/spec.md`,
+`prompts/design.md`, `prompts/adr.md`, `prompts/plan.md`, `prompts/implement.md`,
+`prompts/change.md`, `prompts/amend.md`.
+
+## Non-negotiables
+
+- **The spec is the single source of truth.** No code without a corresponding spec entry.
+- **Spec overreach is a defect** (C2). Implement exactly what the task asks. If you find
+  missing scope, propose a task or an amendment and stop — do not "helpfully" add it.
+- **Draft, then stop.** Every artifact is a proposal for a human to accept. Never
+  self-accept an ADR, never edit an accepted spec, never open or merge a PR unasked.
+- **Mark provenance.** `[INFERRED - CONFIRM]` for inferences, `[OPEN - REQUIRES INPUT]` for
+  gaps. Never invent a plausible answer to make a document look complete.
+- **Accepted ADRs are immutable.** Supersede with a new ADR; never edit a settled one.
+- **Tests derive from acceptance criteria,** not from the implementation you just wrote.
+- Which documents are mandatory comes from `sdd.config.yml`, not from assumption.
+
+## Before proposing a commit
+
+```bash
+node scripts/spec-lint.mjs
+```
+
+Findings are blockers, not suggestions; each is tagged with the constitution clause it
+enforces. It does not cover every clause — several are review-based rather than automated,
+so a passing lint is not proof the constitution is satisfied. A clause no check enforces
+still binds you.

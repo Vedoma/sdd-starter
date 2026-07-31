@@ -6,9 +6,12 @@ artifact - spec, ADR, design, backlog, code - must not contradict the constituti
 genuinely needs to violate a principle, that is a constitutional amendment (see below),
 not an ADR.
 
-This file is **always loaded into an agent's context** (see `AGENTS.md` and
-`.claude/commands/`). But loading is not enforcement - a principle is only real if a
-machine or a required review **blocks** a violation. Each clause below therefore names its
+This file is **always loaded into an agent's context**: `CLAUDE.md` imports it for Claude
+Code, `.cursor/rules/sdd.mdc` for Cursor, `.github/copilot-instructions.md` for Copilot, and
+every `.claude/commands/` wrapper loads it before its prompt. (Until `CLAUDE.md` existed this
+was only true inside a `/`-command, which left implementation turns - most of the work -
+ungoverned.) But loading is not enforcement - a principle is only real if a machine or a
+required review **blocks** a violation. Each clause below therefore names its
 enforcement mechanism, the same discipline the ADR template's Compliance section demands.
 
 > "Control the ideas, not the code." Under AI-generated code, craftsmanship does not
