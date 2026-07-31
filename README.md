@@ -58,8 +58,9 @@ block a non-compliant PR rather than trusting an agent to remember the rules. Th
 ├── constitution.md               ← binding principles + enforcement Status (read first)
 ├── SPEC_VERSION.md               ← spec version + amendment log
 ├── sdd.config.yml                ← capabilities + process (which docs are mandatory)
-├── AGENTS.md                     ← operating manual for AI agents
-├── CLAUDE.md                     ← loads the constitution for Claude Code
+├── AGENTS.md                     ← operating manual (the single source every tool loads)
+├── CLAUDE.md                     ← imports constitution + AGENTS for Claude Code
+├── GEMINI.md                     ← imports constitution + AGENTS for Gemini CLI
 ├── docs/
 │   ├── product/                  ← brief.md, prd.md
 │   ├── spec/                     ← technical-spec.md (SSoT), data-model.md, api-contracts.md
@@ -72,9 +73,9 @@ block a non-compliant PR rather than trusting an agent to remember the rules. Th
 │   └── ecosystem/                ← OPTIONAL: forge-md interop (delete if unused)
 ├── prompts/                      ← tool-agnostic prompt body per phase
 ├── .claude/commands/             ← Claude Code command wrappers over prompts/
-├── .cursor/rules/                ← same rules for Cursor
+├── .cursor/rules/                ← points Cursor at AGENTS.md + constitution
 ├── .github/
-│   ├── copilot-instructions.md   ← same rules for Copilot
+│   ├── copilot-instructions.md   ← points Copilot at AGENTS.md + constitution
 │   ├── CODEOWNERS                ← required reviewers (fill in before enabling)
 │   ├── PULL_REQUEST_TEMPLATE.md
 │   └── workflows/                ← spec-lint, adr-status, create-followup,
