@@ -36,5 +36,5 @@ node scripts/spec-lint.mjs
 ```
 
 Each finding names the constitution clause it enforces. It does not cover every clause —
-several are review-based rather than automated, so a passing lint is not proof the
-constitution is satisfied. A clause no check enforces still binds you.
+check the `Status` column in `constitution.md` before assuming a rule is machine-checked. A
+clause no check enforces still binds you.

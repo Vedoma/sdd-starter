@@ -1,0 +1,58 @@
+# Accessibility gate for constitution C6 - TEMPLATE, not an active workflow.
+#
+# Named .example on purpose: a real axe/pa11y run needs YOUR built, running application,
+# and this scaffold does not know your stack, build command, or routes. A workflow that
+# guessed would either fail on every clone or - worse - pass vacuously and report a green
+# accessibility gate for a page it never loaded.
+#
+# Until you activate this, C6 is `unenforced` in constitution.md. That is what the Status
+# column there says, and it is accurate.
+#
+# TO ACTIVATE
+#   1. Rename to a11y.yml.
+#   2. Fill in the build and serve steps for your stack.
+#   3. List the routes that must pass in URLS.
+#   4. Add `a11y` to the required status checks (see docs/repo-setup.md §1).
+#   5. Update C6's Status in constitution.md to reflect that it now runs.
+#
+# Keep the conformance target in sync with docs/design/design.md §5.
+
+name: a11y
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  a11y:
+    # Only meaningful once capabilities.ui is true in sdd.config.yml.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # --- FILL IN: build and start your application -------------------------------
+      # - run: npm ci
+      # - run: npm run build
+      # - run: npm run start &      # or `npx serve dist`, docker compose up -d, ...
+      # - name: Wait for the app
+      #   run: npx wait-on http://localhost:3000 --timeout 60000
+
+      - name: Run axe against the listed routes
+        env:
+          # FILL IN: every route that must meet the bar. A one-route list is a one-route
+          # guarantee - do not let this stand in for the whole product.
+          URLS: >-
+            http://localhost:3000/
+        run: |
+          echo "::error::a11y.yml is still the unedited template - fill in the build, serve and URL steps."
+          exit 1
+          # Replace the two lines above with, for example:
+          #   npx @axe-core/cli $URLS --exit --tags wcag2a,wcag2aa,wcag22aa
+          # or a pa11y-ci run with a .pa11yci config.

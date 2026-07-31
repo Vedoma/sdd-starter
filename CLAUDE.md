@@ -37,9 +37,9 @@ node scripts/spec-lint.mjs
 `spec-lint` is the mechanism behind part of the constitution; treat a finding as a blocker,
 not a suggestion. Each finding is tagged with the clause it enforces.
 
-It does **not** cover every clause. `constitution.md` names an enforcement mechanism per
-principle and several of those are review-based rather than automated, so a passing lint is
-not proof the constitution is satisfied. A clause the linter is silent about still binds you.
+It does **not** cover every clause. Read the `Status` column in `constitution.md` before
+assuming a rule is machine-checked - several are review-only, and one (C7) currently has no
+mechanism at all. A clause the linter does not enforce still binds you.
 
 ## Layout
 

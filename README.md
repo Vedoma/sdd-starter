@@ -55,10 +55,11 @@ block a non-compliant PR rather than trusting an agent to remember the rules. Th
 
 ```
 .
-├── constitution.md               ← binding principles + their enforcement (read first)
+├── constitution.md               ← binding principles + enforcement Status (read first)
 ├── SPEC_VERSION.md               ← spec version + amendment log
 ├── sdd.config.yml                ← capabilities + process (which docs are mandatory)
 ├── AGENTS.md                     ← operating manual for AI agents
+├── CLAUDE.md                     ← loads the constitution for Claude Code
 ├── docs/
 │   ├── product/                  ← brief.md, prd.md
 │   ├── spec/                     ← technical-spec.md (SSoT), data-model.md, api-contracts.md
@@ -66,12 +67,21 @@ block a non-compliant PR rather than trusting an agent to remember the rules. Th
 │   ├── adr/                      ← MADR decisions (ADR-0000-template.md) + index
 │   ├── plan/                     ← milestones.md, backlog.md (+ archive/)
 │   ├── changes/                  ← CHANGE-NNNN deltas (+ archive/)
+│   ├── repo-setup.md             ← the GitHub settings the constitution assumes
+│   ├── profiles.md               ← what capabilities/process resolve to
 │   └── ecosystem/                ← OPTIONAL: forge-md interop (delete if unused)
 ├── prompts/                      ← tool-agnostic prompt body per phase
 ├── .claude/commands/             ← Claude Code command wrappers over prompts/
-├── .github/                      ← PR template + CI (adr-status, spec-lint)
+├── .cursor/rules/                ← same rules for Cursor
+├── .github/
+│   ├── copilot-instructions.md   ← same rules for Copilot
+│   ├── CODEOWNERS                ← required reviewers (fill in before enabling)
+│   ├── PULL_REQUEST_TEMPLATE.md
+│   └── workflows/                ← spec-lint, adr-status, create-followup,
+│                                   a11y.yml.example (template, inactive)
 ├── scripts/spec-lint.mjs         ← the enforcement backbone
 ├── src/  tests/                  ← implementation
+└── LICENSE                       ← MIT
 ```
 
 ## The Workflow
@@ -108,12 +118,17 @@ Agents draft; humans accept. Every generated document marks inferences
 2. **Declare your project** in [`sdd.config.yml`](./sdd.config.yml) - set `capabilities`
    (`ui` / `api` / `data`) and `process` (`prd` / `milestones`); that decides which docs
    are mandatory.
-3. **Read [`constitution.md`](./constitution.md)** - the rules `spec-lint` enforces.
-4. **Enable the local hook** (optional): `git config core.hooksPath .githooks`.
-5. **Start at `/brief`** (or, for an existing codebase, write a minimal
+3. **Read [`constitution.md`](./constitution.md)** — the binding rules. Check the `Status`
+   column: it says which clauses a machine actually blocks and which are review-only or
+   not yet enforced at all. Do not assume a rule is checked because it is written down.
+4. **Do the setup in [`docs/repo-setup.md`](./docs/repo-setup.md)** — required status
+   checks, branch protection, CODEOWNERS. Until that is done the check runs but nothing
+   *blocks* a merge, and C8 is not enforced at all.
+5. **Enable the local hook** (optional): `git config core.hooksPath .githooks`.
+6. **Start at `/brief`** (or, for an existing codebase, write a minimal
    `docs/spec/technical-spec.md` of what is already true and drive changes through
    `docs/changes/`).
-6. **Work phase by phase** - do not implement ahead of an accepted spec. Every PR fills
+7. **Work phase by phase** — do not implement ahead of an accepted spec. Every PR fills
    [`.github/PULL_REQUEST_TEMPLATE.md`](./.github/PULL_REQUEST_TEMPLATE.md); the Spec
    Reference is mandatory and CI-enforced.
 
