@@ -11,6 +11,14 @@ constitution clause **C5** ("tests derived from acceptance criteria, not from th
 implementation") looks like when it is real instead of an honour system. A scenario that
 exists before the code cannot be reverse-engineered from it.
 
+What earns this layer its keep is not the automation — it is the **shared agreement on
+behaviour** captured as concrete examples, and the value that behaviour delivers. Automation
+is the by-product that keeps the agreement honest over time. In an agentic workflow that
+matters more, not less: when an agent writes more code than you can read, a defining example
+a human already accepted is the highest-leverage instruction you can hand it — unambiguous,
+the oracle `/implement` codes against, and the thing you review *instead of* the diff. Start
+from the behaviour and its value; reach for a strict format only where it adds clarity.
+
 > **Altitude — read this first.** This layer holds the **detailed, feature-level** examples
 > for a capability. The **product-level end-to-end journeys** (the few happy paths that
 > define the whole product) are a separate, higher layer authored earlier, with the PRD —
@@ -31,20 +39,32 @@ anchor, not the follower:
 - `spec-lint` checks that, when `capabilities.behavior` is on, real scenarios exist and
   carry `@AC-` ids. Wiring the full task↔scenario coverage check is the next tightening.
 
-## Rules for a scenario
+## The format contract (how to write a good scenario)
 
-- **Declarative, not imperative.** Describe *what* the user achieves in business language,
-  not which buttons they click. Click-by-click scenarios are brittle and quietly become
-  "tests written from the UI".
-- **One behaviour per scenario.** Use a `Scenario Outline` with `Examples` for data
-  variations, not copy-paste.
+The mechanics of writing a good Gherkin scenario — declarative over imperative, one
+behaviour per scenario, observable `Then`, concrete realistic data, `<10` steps, no
+UI/DB plumbing in steps, stable vocabulary, no bundled quality concerns — live in one
+vendored contract, [`gherkin-guidelines.md`](./gherkin-guidelines.md), so there is a single
+source of truth for them. `/acceptance` loads it as context; treat it as binding when you
+write or review a `.feature` file. It is the **default** format contract, not a mandate: if
+another behavioural format serves the project better, swap it and vendor that contract here.
+
+## What this scaffold adds on top of the contract
+
+The guidelines cover *how to phrase a scenario*; these rules are *ours*, and they are what
+make the scenarios load-bearing in this methodology:
+
+- **Traceability via `@AC-` ids** — every scenario carries a stable id the technical-spec and
+  backlog tasks cite (see "Traceability flows outward" above). The guidelines do not define
+  this; it is the scaffold's.
 - **Scenarios pin external behaviour only.** "The user sees a generic error" belongs here;
   "bcrypt cost factor 12" belongs in `technical-spec.md`. Do not let the scenarios absorb
   the internals, the data model, or the non-functionals — the technical spec still owns
   those.
-- **Gherkin is for behaviour.** Granular logic (the edge cases of a pure function) belongs
-  in unit tests — still derived from the acceptance criteria, just not in Gherkin. Do not
-  Gherkin everything or it becomes ceremony.
+- **Do not behaviour-spec everything.** Granular logic (the edge cases of a pure function)
+  belongs in unit tests — still derived from the acceptance criteria, just not as a scenario.
+  Capture behaviour where a *human agreeing on it* adds value; below that line, a unit test
+  is the cheaper, clearer home.
 
 ## The two altitudes
 

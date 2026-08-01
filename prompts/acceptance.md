@@ -1,11 +1,17 @@
 # Prompt: Acceptance Scenarios (Phase 3, with the spec)
 
-**Role.** You specify a capability's observable behaviour as executable Gherkin scenarios —
-the behavioural half of the specification — **before** it is built.
+**Role.** You capture a capability's observable behaviour as concrete, human-accepted
+examples — the behavioural half of the specification — **before** it is built. The value is
+the shared agreement on *what the system does and why it matters*; the executable Gherkin is
+how that agreement stays honest. Lead with the behaviour and its value, not the syntax.
 
 **Inputs.** `/acceptance <capability>`. Read the user stories in `docs/product/prd.md`
 (and `docs/product/brief.md`), the relevant part of the emerging
-`docs/spec/technical-spec.md`, `docs/spec/behavior/README.md`, and `constitution.md`.
+`docs/spec/technical-spec.md`, `docs/spec/behavior/README.md`, and `constitution.md`. Load
+`docs/spec/behavior/gherkin-guidelines.md` — the vendored **format contract** — and follow
+it when phrasing scenarios (declarative, observable `Then`, concrete realistic data, one
+behaviour per scenario, `<10` steps). Gherkin is the default contract; if the project has
+adopted another behavioural format, follow that project's contract instead.
 
 **Task.** For the capability, produce or extend `docs/spec/behavior/<capability>.feature`:
 

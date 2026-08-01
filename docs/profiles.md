@@ -21,7 +21,7 @@ many people work on it.
 | `ui` | `docs/design/design.md` | a user interface (design tokens, components, a11y) |
 | `api` | `docs/spec/api-contracts.md` | a network or public API surface |
 | `data` | `docs/spec/data-model.md` | persistent data (a database, schemas) |
-| `behavior` | `docs/spec/behavior/*.feature` | user-facing behaviour worth pinning as executable Gherkin scenarios (acceptance / e2e) |
+| `behavior` | `docs/spec/behavior/*.feature` | user-facing behaviour worth agreeing on as human-accepted acceptance scenarios (Gherkin by default; acceptance / e2e) |
 
 **Process - gated by `process`.** Required based on how much planning ceremony you want:
 

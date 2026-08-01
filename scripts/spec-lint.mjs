@@ -158,11 +158,12 @@ function lintDesignTokens() {
 lintDesignTokens()
 
 // ---- 6. Behavioural spec present when the project has user-facing behaviour (C5) ---
-// When capabilities.behavior is on, the acceptance criteria must exist in executable form:
-// at least one real Gherkin .feature under docs/spec/behavior/. The shipped example
-// template is ignored. A scenario with no @AC- trace tag (the stable id the spec and
-// backlog tasks cite) is a warning, not a hard error, so tag parsing can never block a
-// merge on an edge case.
+// When capabilities.behavior is on, the accepted behaviour must exist as concrete examples:
+// at least one real .feature under docs/spec/behavior/ (Gherkin is the default format
+// contract). This gate checks the DISCIPLINE - that an accepted example exists and traces -
+// not the syntax; it does not validate Gherkin grammar. The shipped example template is
+// ignored. A scenario with no @AC- trace tag (the stable id the spec and backlog tasks
+// cite) is a warning, not a hard error, so tag parsing can never block a merge on an edge case.
 function lintBehaviourSpec() {
   const cfg = read('sdd.config.yml') || ''
   if (cfgFlag(cfg, 'capabilities', 'behavior') !== true) return

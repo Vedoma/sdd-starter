@@ -3,7 +3,8 @@
 # This is the behavioural half of the SPECIFICATION (Phase 3), authored as the technical
 # spec firms up: the observable behaviour of a capability, written as examples. It is not a
 # test written after the code - it defines what the code must do, and /implement makes it
-# pass. See README.md in this directory for the full rules. The short version:
+# pass. How to phrase good scenarios: gherkin-guidelines.md (the vendored format contract).
+# What is specific to this scaffold: README.md in this directory. The short version:
 #
 #   - Each Scenario is one acceptance criterion. Give it a stable @AC-<area>-<n> tag: the
 #     id the technical-spec and backlog tasks CITE. Traceability flows outward FROM here.

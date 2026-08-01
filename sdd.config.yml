@@ -13,7 +13,9 @@ capabilities:
   ui: false # a user interface       -> docs/design/design.md required
   api: false # a network/public API   -> docs/spec/api-contracts.md required
   data: false # persistent data        -> docs/spec/data-model.md required
-  behavior: false # user-facing behaviour -> docs/spec/behavior/*.feature (executable acceptance scenarios)
+  behavior: false # user-facing behaviour -> docs/spec/behavior/*.feature (human-accepted acceptance
+  #                 scenarios). Default format contract: Gherkin (docs/spec/behavior/gherkin-guidelines.md);
+  #                 pluggable - swap the format and its contract if another serves the project better.
 
 # How much planning ceremony you want - gates the two process documents:
 process:
