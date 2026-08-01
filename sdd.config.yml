@@ -13,7 +13,7 @@ capabilities:
   ui: false # a user interface       -> docs/design/design.md required
   api: false # a network/public API   -> docs/spec/api-contracts.md required
   data: false # persistent data        -> docs/spec/data-model.md required
-  behavior: false # user-facing behaviour -> docs/spec/behavior/*.feature + tests/acceptance/  [PROPOSED - not yet read by spec-lint; see the behavioural-testing PR]
+  behavior: false # user-facing behaviour -> docs/spec/behavior/*.feature (executable acceptance scenarios)
 
 # How much planning ceremony you want - gates the two process documents:
 process:
@@ -33,7 +33,7 @@ overrides:
 #   + docs/design/design.md        if capabilities.ui
 #   + docs/spec/api-contracts.md   if capabilities.api
 #   + docs/spec/data-model.md      if capabilities.data
-#   + docs/spec/behavior/*.feature if capabilities.behavior   [PROPOSED - wiring into spec-lint is follow-up]
+#   + docs/spec/behavior/*.feature if capabilities.behavior   (spec-lint requires >=1 real scenario)
 #   +/- overrides
 #
 # The defaults above are LEAN: a fresh clone only requires the core, so it feels light.
