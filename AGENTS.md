@@ -20,19 +20,22 @@ This scaffold has two modes.
 | Phase | Command | Produces |
 | --- | --- | --- |
 | 1 Idea | `/brief` | `docs/product/brief.md` |
-| 2 Requirements | `/prd` | `docs/product/prd.md` |
+| 2 Requirements | `/prd`, `/discover` | `docs/product/prd.md`, `docs/spec/behavior/discovery/*.md`, `docs/spec/behavior/journeys/*.feature` |
 | 3 Specification | `/spec`, `/design`, `/acceptance` | `docs/spec/*.md`, `docs/design/design.md`, `docs/spec/behavior/*.feature` |
 | 4 Decisions | `/adr` | `docs/adr/ADR-NNNN-*.md` |
 | 5 Planning | `/plan` | `docs/plan/milestones.md`, `docs/plan/backlog.md` |
 | 6 Implementation | `/implement TASK-XXX` | `src/`, `tests/` |
 
-When `capabilities.behavior` is on, Phase 3 also specifies **behaviour**: `/acceptance
-<capability>` turns the PRD's user stories into executable Gherkin scenarios
-(`docs/spec/behavior/*.feature`) **before** the code, so the spec, decisions, plan, and
-`/implement` all serve behaviour a human has already accepted — not tests
-reverse-engineered from the agent's own code (constitution C5). Scenarios carry stable
-`@AC-` ids; the spec and backlog tasks cite them. See
-[`docs/spec/behavior/`](./docs/spec/behavior/) and [`tests/`](./tests/).
+When `capabilities.behavior` is on, behaviour is worked as **three practices** across the
+phases — **Discovery** (Phase 2, `/discover`: facilitate an Example Mapping conversation,
+surface rules/examples/questions), **Formulation** (Phase 3, `/acceptance`: turn agreed
+examples into `@AC-`tagged scenarios), and **Automation** (Phase 6, `/implement`:
+selectively). Scenarios are authored **before** the code, so the spec, decisions, plan, and
+`/implement` all serve behaviour a human has already accepted — not tests reverse-engineered
+from the agent's own code (constitution C5). Discovery and journeys are optional and light;
+the feature-level scenarios are what `spec-lint` requires. Product-level end-to-end
+**journeys** (`@journey`, authored in Phase 2) sit above the per-capability feature
+scenarios. See [`docs/spec/behavior/`](./docs/spec/behavior/) and [`tests/`](./tests/).
 
 **Change-based sustain** (post-MVP / brownfield) - do not edit accepted specs ad hoc.
 Every change is a delta: `/change` opens `docs/changes/CHANGE-XXXX/`; on delivery the
@@ -81,6 +84,8 @@ SPEC_VERSION.md              # spec version + amendment log
 docs/
   product/  spec/  design/  plan/  adr/  changes/
   spec/behavior/             # behavioural spec: Gherkin *.feature (executable acceptance)
+  spec/behavior/journeys/    # product-level end-to-end @journey scenarios (Phase 2, optional)
+  spec/behavior/discovery/   # Example Mapping residue from /discover (Phase 2, optional)
   repo-setup.md              # GitHub settings the constitution assumes
   ecosystem/forge-md.md      # OPTIONAL: forge-md interop - delete if unused
 prompts/                     # tool-agnostic prompt bodies (one per phase)
