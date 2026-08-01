@@ -161,6 +161,11 @@ Increment task numbers sequentially across all milestones.
 - [ ] [Criterion 2]
 - [ ] [Criterion 3]
 
+**Acceptance Scenarios** *(when `capabilities.behavior` is on):*
+- The `@AC-…` scenarios in `docs/spec/behavior/` this task must make pass — e.g.
+  `@AC-login-2`, `@AC-login-3`. These are authored in Phase 3; a task cites them, it does
+  not invent them. `/implement` makes exactly these green and never weakens them.
+
 **Do Not:**
 - [Anti-pattern or constraint — what should NOT be done in this task]
 

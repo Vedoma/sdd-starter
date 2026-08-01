@@ -16,15 +16,17 @@ This scaffold has two modes.
 | --- | --- | --- |
 | 1 Idea | `/brief` | `docs/product/brief.md` |
 | 2 Requirements | `/prd` | `docs/product/prd.md` |
-| 3 Specification | `/spec`, `/design` | `docs/spec/*.md`, `docs/design/design.md` |
+| 3 Specification | `/spec`, `/design`, `/acceptance` | `docs/spec/*.md`, `docs/design/design.md`, `docs/spec/behavior/*.feature` |
 | 4 Decisions | `/adr` | `docs/adr/ADR-NNNN-*.md` |
 | 5 Planning | `/plan` | `docs/plan/milestones.md`, `docs/plan/backlog.md` |
-| 5b Acceptance | `/acceptance TASK-XXX` | `docs/spec/behavior/*.feature` |
 | 6 Implementation | `/implement TASK-XXX` | `src/`, `tests/` |
 
-Phase 5b (when `capabilities.behavior` is on) turns a task's acceptance criteria into
-executable Gherkin scenarios **before** implementation, so `/implement` has an oracle to
-make pass rather than tests reverse-engineered from its own code (constitution C5). See
+When `capabilities.behavior` is on, Phase 3 also specifies **behaviour**: `/acceptance
+<capability>` turns the PRD's user stories into executable Gherkin scenarios
+(`docs/spec/behavior/*.feature`) **before** the code, so the spec, decisions, plan, and
+`/implement` all serve behaviour a human has already accepted — not tests
+reverse-engineered from the agent's own code (constitution C5). Scenarios carry stable
+`@AC-` ids; the spec and backlog tasks cite them. See
 [`docs/spec/behavior/`](./docs/spec/behavior/) and [`tests/`](./tests/).
 
 **Change-based sustain** (post-MVP / brownfield) - do not edit accepted specs ad hoc.

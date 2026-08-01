@@ -36,12 +36,13 @@ and add it to the required checks (see [`docs/repo-setup.md`](../docs/repo-setup
 
 ## Ordering (the part that makes C5 real)
 
-1. `/plan` produces backlog tasks, each with acceptance criteria.
-2. `/acceptance` turns those criteria into `.feature` scenarios under `docs/spec/behavior/` —
-   **before** any implementation. A human accepts the scenarios (accepting them *is*
-   accepting the behaviour).
-3. `/implement TASK-XXX` writes code until the scenarios and unit tests for that task pass,
-   and **does not weaken or rewrite a scenario to match the code**.
+1. `/acceptance <capability>` (Phase 3) specifies behaviour as `.feature` scenarios under
+   `docs/spec/behavior/`, from the PRD's user stories — **before** the technical spec is
+   finished and long before any code. A human accepts the scenarios; accepting them *is*
+   accepting the behaviour.
+2. `/plan` (Phase 5) decomposes the work; each task cites the `@AC-` scenarios it advances.
+3. `/implement TASK-XXX` (Phase 6) writes code until the cited scenarios and the unit tests
+   pass, and **never weakens or rewrites a scenario to match the code**.
 
 A test that only exists after the code, asserting what the code already does, is not
 evidence — it is a mirror.
