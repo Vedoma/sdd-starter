@@ -1,0 +1,34 @@
+# CODEOWNERS - required reviewers per path.
+#
+# Constitution C8 ("every change is reviewable and reversible") names branch protection
+# as part of its enforcement. Branch protection lives in GitHub's settings, not in the
+# repository, so the auditable part is kept here and in docs/repo-setup.md.
+#
+# ----------------------------------------------------------------------------------
+# THE RULES BELOW ARE COMMENTED OUT ON PURPOSE. Replace @OWNER with a real handle or
+# team and uncomment them.
+#
+# Do not leave a placeholder handle in an active rule: GitHub silently IGNORES a
+# CODEOWNERS line naming a user or team that cannot review this repository. Combined
+# with "Require review from Code Owners" that produces a gate which looks enabled and
+# enforces nothing - the exact failure mode this scaffold exists to avoid. An empty
+# CODEOWNERS is honestly empty; a broken one lies.
+# ----------------------------------------------------------------------------------
+
+# The governance layer. These files decide how everything else is judged, so they
+# deserve the strictest review - a weakened constitution or linter silently weakens
+# every rule downstream.
+# constitution.md            @OWNER
+# SPEC_VERSION.md            @OWNER
+# sdd.config.yml             @OWNER
+# scripts/                   @OWNER
+# .github/                   @OWNER
+# CLAUDE.md                  @OWNER
+# AGENTS.md                  @OWNER
+
+# The living spec and settled decisions.
+# docs/spec/                  @OWNER
+# docs/adr/                   @OWNER
+
+# Everything else.
+# *                           @OWNER

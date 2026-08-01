@@ -1,10 +1,15 @@
 # AGENTS.md - operating manual for AI agents
 
-This file is the **operational** guide for any agent (Claude, Cursor, Aider, Copilot,
-...) working in this repository: which phase you are in, which command to run, when to
-stop for a human, and how to write honestly. The **normative** rules - the principles
-your output must satisfy - live in [`constitution.md`](./constitution.md). Read the
-constitution first; it is binding and takes precedence over anything here.
+This file is the **operational** guide for any agent (Claude, Cursor, Copilot, Gemini,
+Grok, Aider, ...) working in this repository: which phase you are in, which command to
+run, when to stop for a human, and how to write honestly. It is the single source every
+tool loads — natively (Codex, Cursor, Copilot, Grok, Gemini CLI, ...) or by import
+(`CLAUDE.md`, `GEMINI.md`). The per-tool files carry no rules of their own; they point
+here, so there is exactly one copy to keep current.
+
+The **normative** rules - the principles your output must satisfy - live in
+[`constitution.md`](./constitution.md). Read the constitution first; it is binding and
+takes precedence over anything here.
 
 ## The SDD lifecycle
 
@@ -38,6 +43,10 @@ Commands are defined in [`.claude/commands/`](./.claude/commands/) and back onto
 tool-agnostic prompt bodies in [`prompts/`](./prompts/); a non-Claude agent can read the
 `prompts/` file directly.
 
+Which documents a given project is required to have is declared in
+[`sdd.config.yml`](./sdd.config.yml) — read it rather than assuming a document is
+mandatory or optional.
+
 ## How to write (provenance rule)
 
 You are drafting artifacts a human will accept, edit, or reject - never silently commit
@@ -66,17 +75,30 @@ A drafted artifact is a proposal. Present it and wait.
 
 ```
 constitution.md              # binding project principles (read first)
+CLAUDE.md                    # imports constitution + AGENTS for Claude Code
+GEMINI.md                    # imports constitution + AGENTS for Gemini CLI
 SPEC_VERSION.md              # spec version + amendment log
 docs/
   product/  spec/  design/  plan/  adr/  changes/
   spec/behavior/             # behavioural spec: Gherkin *.feature (executable acceptance)
+  repo-setup.md              # GitHub settings the constitution assumes
   ecosystem/forge-md.md      # OPTIONAL: forge-md interop - delete if unused
 prompts/                     # tool-agnostic prompt bodies (one per phase)
 .claude/commands/            # Claude Code command wrappers over prompts/
-.github/                     # CI: adr-status, spec-lint, PR template
+.cursor/rules/               # points Cursor at this file + the constitution
+.github/                     # copilot-instructions.md (pointer), CODEOWNERS, PR template, CI
+scripts/spec-lint.mjs        # the enforcement backbone
 src/                         # implementation
 tests/                       # acceptance/ (runs the .feature scenarios), integration/, unit/
 ```
+
+## What is actually enforced
+
+Run `node scripts/spec-lint.mjs` before proposing a commit; each finding names the clause
+it enforces. But **read the `Status` column in `constitution.md` before assuming a rule is
+machine-checked** — C3, C6 and C7 currently name mechanisms that do not exist, and C1's
+Spec Reference check verifies presence, not that the reference resolves. Those clauses
+still bind you; they are simply enforced by you and the reviewer rather than by CI.
 
 ## Non-negotiables (see constitution.md for the full list + enforcement)
 

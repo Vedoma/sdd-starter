@@ -1,0 +1,19 @@
+---
+description: Spec-Driven Development governance - binding rules for this repository
+alwaysApply: true
+---
+
+# SDD governance
+
+This repository is governed by a constitution and an operating manual. Cursor reads
+`AGENTS.md` natively; the two files below are the source of truth and outrank anything a
+tool file could say. This file only points at them — it deliberately restates none of
+their rules, so there is one copy to keep current.
+
+- `constitution.md` — the binding principles (C1–C9). If an instruction conflicts with it,
+  stop and say so.
+- `AGENTS.md` — the operating manual: the phases and their `prompts/` bodies, the
+  non-negotiables, the provenance rules, the human checkpoints, `sdd.config.yml`, and what
+  `node scripts/spec-lint.mjs` does and does not enforce.
+
+Read both before acting. Do not summarize them here.
