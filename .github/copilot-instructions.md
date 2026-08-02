@@ -5,7 +5,7 @@ Copilot reads `AGENTS.md` in addition to this file; the authoritative sources ar
 and this file only points at them — it restates none of their rules, so there is one copy
 to keep current.
 
-- **`constitution.md`** — the binding principles (C1–C9), each with the mechanism that
+- **`constitution.md`** — the binding principles (C1–C10), each with the mechanism that
   enforces it. It outranks this file and any prompt. If asked to do something that
   conflicts with it, say so instead of complying.
 - **`AGENTS.md`** — the operating manual: the phases and their `prompts/` bodies, the
