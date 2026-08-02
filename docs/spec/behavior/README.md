@@ -58,7 +58,9 @@ anchor, not the follower:
 - The **technical-spec and the backlog tasks cite those ids** — a task says "satisfies
   `@AC-login-2`", not the other way round.
 - `spec-lint` checks that, when `capabilities.behavior` is on, real scenarios exist and
-  carry `@AC-` ids. Wiring the full task↔scenario coverage check is the next tightening.
+  carry `@AC-` ids, **and** that every `@AC-` a backlog task cites resolves to a real
+  scenario (a dangling citation errors; scenarios no task cites warn). What stays review-only
+  is coverage *direction* — that a task cites every scenario it should.
 
 ## The format contract (how to write a good scenario)
 

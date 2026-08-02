@@ -41,7 +41,7 @@ for several clauses it did not:
 | C7 | **No secrets in the repository.** Credentials come from the environment. | `unenforced` | No secret scanner runs in CI. Enable GitHub's native push protection as an interim measure and see [`docs/repo-setup.md`](./docs/repo-setup.md) §4 |
 | C8 | **Every change is reviewable and reversible.** Atomic PRs; one ADR per PR; changes archived, never deleted. | `partial` | Branch protection per [`docs/repo-setup.md`](./docs/repo-setup.md) — a **settings-level** guarantee, not code. The one-ADR-per-PR rule is enforced only inside the `/adr` command, and archive hygiene is not checked at all |
 | C9 | **Plain Markdown, zero lock-in.** Artifacts stay portable, self-hostable, tool-agnostic. | `review` | review; no proprietary/binary artifact format introduced without an ADR. The tooling holds itself to this too: `spec-lint` runs on stock Node with no `package.json` |
-| C10 | **Behaviour is specified before it is built.** When a capability has user-facing behaviour, its acceptance scenarios are authored as concrete, human-accepted examples in Phase 3 — *before* the code — and carry stable `@AC-` ids the spec and backlog tasks cite. This is C5 made real: the acceptance criteria exist, in executable form, ahead of the implementation that must satisfy them. | `partial` | `spec-lint`: when `capabilities.behavior` is on, at least one real (non-template) scenario must exist under `docs/spec/behavior/` and carry an `@AC-` trace tag (a missing tag warns). That the scenarios truly precede the code and were human-accepted is review-only; the task↔scenario coverage check (every behaviour-bearing task cites a live `@AC-`) is **not yet wired** |
+| C10 | **Behaviour is specified before it is built.** When a capability has user-facing behaviour, its acceptance scenarios are authored as concrete, human-accepted examples in Phase 3 — *before* the code — and carry stable `@AC-` ids the spec and backlog tasks cite. This is C5 made real: the acceptance criteria exist, in executable form, ahead of the implementation that must satisfy them. | `partial` | `spec-lint`: when `capabilities.behavior` is on, at least one real (non-template) scenario must exist under `docs/spec/behavior/` and carry an `@AC-` trace tag (a missing tag warns); and every `@AC-` a backlog task cites must resolve to a real scenario — a **dangling citation errors**, scenarios no task cites warn. What stays review-only is that the scenarios truly precede the code and were human-accepted, and that a task cites *all* the scenarios it should (coverage direction, not just citation validity) |
 
 When you add a principle, you must add its enforcement **and its Status** in the same PR. A
 clause whose Status you cannot honestly write is not a principle — it is a wish. Marking
@@ -85,6 +85,8 @@ our principles change?" unanswerable at a glance.
 > exist (C3, C4, C6 and C7 in particular). The cells now say so instead. **C10 (behaviour
 > specified before it is built)** was added alongside the `behavior` capability, with its
 > `spec-lint` gate and an honest `partial` Status — the existence-and-trace half is checked,
-> the task↔scenario coverage half is named as not-yet-wired. Releasing 1.0 requires the
+> plus task↔scenario citation validity (a backlog task citing an `@AC-` no scenario defines
+> now errors); what stays review-only is that scenarios precede the code, were human-accepted,
+> and that a task cites *all* the scenarios it should. Releasing 1.0 requires the
 > owner sign-off in step 1 above, and should probably wait until the `unenforced` rows have
 > mechanisms behind them.
