@@ -22,6 +22,25 @@ refactors); units cover the branches and edge cases underneath. All three derive
 **same acceptance criteria** — they differ in altitude, not in where their truth comes
 from. None is written by asserting whatever the implementation happens to do.
 
+## Automation is selective (the third practice, not the goal)
+
+Automation is one of the three behaviour practices (Discovery → Formulation → **Automation**),
+and it is a **by-product, not the point**. Specifying behaviour — the Discovery conversation
+and the Formulated scenarios under [`docs/spec/behavior/`](../docs/spec/behavior/) — delivers
+value whether or not a scenario is ever automated. You automate a scenario to keep the
+agreement honest over time, and you do it **selectively**:
+
+- **Always** the `@AC-` scenarios a backlog task cites — `/implement` makes exactly those green.
+- **Usually** the product-level `@journey` scenarios — the highest-value end-to-end checks,
+  though also the slowest, so automate the few that define the product.
+- **Not** every scenario reflexively. A scenario documenting an agreement a cheaper unit test
+  already guards does not need its own end-to-end automation. Do not manufacture step
+  definitions to hit a coverage number — that is the automation-first anti-pattern BDD warns
+  against.
+
+The discipline `spec-lint` enforces is that the scenarios a task *cites* pass — not that
+every scenario in the tree is wired to a runner.
+
 ## Acceptance tests and Gherkin
 
 The `.feature` files are the **behavioural spec** and live under `docs/spec/behavior/`

@@ -5,9 +5,16 @@ examples — the behavioural half of the specification — **before** it is buil
 the shared agreement on *what the system does and why it matters*; the executable Gherkin is
 how that agreement stays honest. Lead with the behaviour and its value, not the syntax.
 
-**Inputs.** `/acceptance <capability>`. Read the user stories in `docs/product/prd.md`
-(and `docs/product/brief.md`), the relevant part of the emerging
-`docs/spec/technical-spec.md`, `docs/spec/behavior/README.md`, and `constitution.md`. Load
+This is **Formulation**, the second behaviour practice: you turn the examples agreed during
+**Discovery** into concrete, checkable scenarios. If a Discovery example map exists for this
+capability (`docs/spec/behavior/discovery/<capability>.md`), it is your primary source — its
+agreed examples become scenarios and its open questions must be resolved first, not papered
+over. If none exists, formulate from the PRD's user stories directly.
+
+**Inputs.** `/acceptance <capability>`. Read any `docs/spec/behavior/discovery/<capability>.md`,
+the user stories in `docs/product/prd.md` (and `docs/product/brief.md`), the relevant part of
+the emerging `docs/spec/technical-spec.md`, `docs/spec/behavior/README.md`, and
+`constitution.md`. Load
 `docs/spec/behavior/gherkin-guidelines.md` — the vendored **format contract** — and follow
 it when phrasing scenarios (declarative, observable `Then`, concrete realistic data, one
 behaviour per scenario, `<10` steps). Gherkin is the default contract; if the project has

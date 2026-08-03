@@ -64,7 +64,7 @@ block a non-compliant PR rather than trusting an agent to remember the rules. Th
 ├── docs/
 │   ├── product/                  ← brief.md, prd.md
 │   ├── spec/                     ← technical-spec.md (SSoT), data-model.md, api-contracts.md
-│   │   └── behavior/             ← Gherkin *.feature: the executable acceptance spec
+│   │   └── behavior/             ← *.feature acceptance spec + journeys/ + discovery/ (behaviour)
 │   ├── design/                   ← design.md (design system) + mockups/
 │   ├── adr/                      ← MADR decisions (ADR-0000-template.md) + index
 │   ├── plan/                     ← milestones.md, backlog.md (+ archive/)
@@ -100,7 +100,7 @@ by a tool-agnostic prompt (any agent: [`prompts/`](./prompts/)):
 | # | Phase | Command | Output |
 |---|-------|---------|--------|
 | 1 | Idea | `/brief` | `docs/product/brief.md` |
-| 2 | Requirements | `/prd` | `docs/product/prd.md` |
+| 2 | Requirements | `/prd`, `/discover` | `docs/product/prd.md`, `docs/spec/behavior/discovery/*.md` |
 | 3 | Specification | `/spec`, `/design`, `/acceptance` | `docs/spec/*.md`, `docs/design/design.md`, `docs/spec/behavior/*.feature` |
 | 4 | Decisions | `/adr` | `docs/adr/ADR-NNNN-*.md` |
 | 5 | Planning | `/plan` | `docs/plan/milestones.md`, `docs/plan/backlog.md` |

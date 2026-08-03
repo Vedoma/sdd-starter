@@ -19,6 +19,27 @@ a human already accepted is the highest-leverage instruction you can hand it —
 the oracle `/implement` codes against, and the thing you review *instead of* the diff. Start
 from the behaviour and its value; reach for a strict format only where it adds clarity.
 
+## The three practices (behaviour is a workflow, not a file format)
+
+Behaviour work is three practices, in order — this is what "behaviour mindset" means here,
+and only the middle one is about writing Gherkin:
+
+| Practice | The point | Phase | Command | Output |
+| --- | --- | --- | --- | --- |
+| **Discovery** | Build shared understanding by talking through concrete examples; surface the questions. | 2, with the PRD | [`/discover`](../../../prompts/discover.md) | an example map ([`discovery/`](./discovery/)) |
+| **Formulation** | Write the agreed examples as concrete, checkable scenarios. | 3, with the spec | [`/acceptance`](../../../prompts/acceptance.md) | `*.feature` scenarios |
+| **Automation** | Make the system actually do it — selectively. | 6 | [`/implement`](../../../prompts/implement.md) | [`tests/`](../../../tests/) |
+
+**Discovery is where the value is** — the conversation catches misunderstandings while they
+are still a sentence. **Formulation** is the residue that keeps the agreement precise.
+**Automation is a by-product**: you automate the scenarios worth automating (see
+[`tests/README.md`](../../../tests/README.md)), not as the goal but to keep the agreement
+honest over time. A team can get most of the value from Discovery and Formulation alone; the
+scaffold never forces you to automate a scenario to have specified it.
+
+Both altitudes below flow through all three practices — a product journey is discovered and
+formulated just like a feature, usually first.
+
 > **Altitude — read this first.** This layer holds the **detailed, feature-level** examples
 > for a capability. The **product-level end-to-end journeys** (the few happy paths that
 > define the whole product) are a separate, higher layer authored earlier, with the PRD —
@@ -70,13 +91,13 @@ make the scenarios load-bearing in this methodology:
 
 | Layer | Scope | Authored | Volume | Home |
 | --- | --- | --- | --- | --- |
-| **Journeys** | product-level, end-to-end happy paths + critical rules | Phase 2, with the PRD | few, very stable | *(planned — see below)* |
+| **Journeys** | product-level, end-to-end happy paths + critical rules | Phase 2, with the PRD | few, very stable | [`journeys/`](./journeys/) |
 | **Features** *(this dir)* | one capability's detailed behaviour | Phase 3, with the spec | many, more volatile | `docs/spec/behavior/*.feature` |
 
 Journeys assert the **flow and the outcome** thinly and reference the feature scenarios for
 detail; feature scenarios own the specifics. Holding that line is what stops the two
-altitudes duplicating each other. The journey layer is a planned second increment; until it
-lands, this feature layer stands on its own.
+altitudes duplicating each other. Journeys are optional and additive — add them when the
+product has multi-step, cross-capability flows; see [`journeys/README.md`](./journeys/README.md).
 
 ## Portability (no lock-in)
 
