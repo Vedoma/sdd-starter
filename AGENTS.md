@@ -21,10 +21,18 @@ This scaffold has two modes.
 | --- | --- | --- |
 | 1 Idea | `/brief` | `docs/product/brief.md` |
 | 2 Requirements | `/prd` | `docs/product/prd.md` |
-| 3 Specification | `/spec`, `/design` | `docs/spec/*.md`, `docs/design/design.md` |
+| 3 Specification | `/spec`, `/design`, `/acceptance` | `docs/spec/*.md`, `docs/design/design.md`, `docs/spec/behavior/*.feature` |
 | 4 Decisions | `/adr` | `docs/adr/ADR-NNNN-*.md` |
 | 5 Planning | `/plan` | `docs/plan/milestones.md`, `docs/plan/backlog.md` |
 | 6 Implementation | `/implement TASK-XXX` | `src/`, `tests/` |
+
+When `capabilities.behavior` is on, Phase 3 also specifies **behaviour**: `/acceptance
+<capability>` turns the PRD's user stories into executable Gherkin scenarios
+(`docs/spec/behavior/*.feature`) **before** the code, so the spec, decisions, plan, and
+`/implement` all serve behaviour a human has already accepted — not tests
+reverse-engineered from the agent's own code (constitution C5). Scenarios carry stable
+`@AC-` ids; the spec and backlog tasks cite them. See
+[`docs/spec/behavior/`](./docs/spec/behavior/) and [`tests/`](./tests/).
 
 **Change-based sustain** (post-MVP / brownfield) - do not edit accepted specs ad hoc.
 Every change is a delta: `/change` opens `docs/changes/CHANGE-XXXX/`; on delivery the
@@ -72,6 +80,7 @@ GEMINI.md                    # imports constitution + AGENTS for Gemini CLI
 SPEC_VERSION.md              # spec version + amendment log
 docs/
   product/  spec/  design/  plan/  adr/  changes/
+  spec/behavior/             # behavioural spec: Gherkin *.feature (executable acceptance)
   repo-setup.md              # GitHub settings the constitution assumes
   ecosystem/forge-md.md      # OPTIONAL: forge-md interop - delete if unused
 prompts/                     # tool-agnostic prompt bodies (one per phase)
@@ -79,7 +88,8 @@ prompts/                     # tool-agnostic prompt bodies (one per phase)
 .cursor/rules/               # points Cursor at this file + the constitution
 .github/                     # copilot-instructions.md (pointer), CODEOWNERS, PR template, CI
 scripts/spec-lint.mjs        # the enforcement backbone
-src/  tests/                 # implementation
+src/                         # implementation
+tests/                       # acceptance/ (runs the .feature scenarios), integration/, unit/
 ```
 
 ## What is actually enforced

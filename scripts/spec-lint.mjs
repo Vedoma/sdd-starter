@@ -157,6 +157,37 @@ function lintDesignTokens() {
 }
 lintDesignTokens()
 
+// ---- 6. Behavioural spec present when the project has user-facing behaviour (C5) ---
+// When capabilities.behavior is on, the accepted behaviour must exist as concrete examples:
+// at least one real .feature under docs/spec/behavior/ (Gherkin is the default format
+// contract). This gate checks the DISCIPLINE - that an accepted example exists and traces -
+// not the syntax; it does not validate Gherkin grammar. The shipped example template is
+// ignored. A scenario with no @AC- trace tag (the stable id the spec and backlog tasks
+// cite) is a warning, not a hard error, so tag parsing can never block a merge on an edge case.
+function lintBehaviourSpec() {
+  const cfg = read('sdd.config.yml') || ''
+  if (cfgFlag(cfg, 'capabilities', 'behavior') !== true) return
+  const dir = 'docs/spec/behavior'
+  const isTemplate = (t) => t.includes('# TEMPLATE - copy this') || t.includes('# TEMPLATE — copy this')
+  const features = existsSync(dir)
+    ? readdirSync(dir)
+        .filter((f) => f.endsWith('.feature'))
+        .map((f) => ({ path: `${dir}/${f}`, txt: read(`${dir}/${f}`) || '' }))
+        .filter((f) => !isTemplate(f.txt))
+    : []
+  if (features.length === 0) {
+    err('C5', `capabilities.behavior is on but no behavioural scenarios exist - add ${dir}/<capability>.feature (see ${dir}/README.md)`)
+    return
+  }
+  for (const f of features) {
+    const scenarios = (f.txt.match(/^\s*Scenario(?: Outline)?:/gm) || []).length
+    const acTags = (f.txt.match(/@AC-[\w.-]+/g) || []).length
+    if (scenarios === 0) warn('C5', `${f.path}: no Scenario found`)
+    else if (acTags === 0) warn('C5', `${f.path}: scenarios have no @AC- trace tag (the id the spec and tasks cite)`)
+  }
+}
+if (!SCAFFOLD) lintBehaviourSpec()
+
 // ---- report ----------------------------------------------------------------------
 if (SCAFFOLD)
   console.log(

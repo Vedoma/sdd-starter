@@ -64,6 +64,7 @@ block a non-compliant PR rather than trusting an agent to remember the rules. Th
 ├── docs/
 │   ├── product/                  ← brief.md, prd.md
 │   ├── spec/                     ← technical-spec.md (SSoT), data-model.md, api-contracts.md
+│   │   └── behavior/             ← Gherkin *.feature: the executable acceptance spec
 │   ├── design/                   ← design.md (design system) + mockups/
 │   ├── adr/                      ← MADR decisions (ADR-0000-template.md) + index
 │   ├── plan/                     ← milestones.md, backlog.md (+ archive/)
@@ -81,7 +82,8 @@ block a non-compliant PR rather than trusting an agent to remember the rules. Th
 │   └── workflows/                ← spec-lint, adr-status, create-followup,
 │                                   a11y.yml.example (template, inactive)
 ├── scripts/spec-lint.mjs         ← the enforcement backbone
-├── src/  tests/                  ← implementation
+├── src/                          ← implementation
+├── tests/                        ← acceptance/ (runs the .feature scenarios), integration/, unit/
 └── LICENSE                       ← MIT
 ```
 
@@ -99,7 +101,7 @@ by a tool-agnostic prompt (any agent: [`prompts/`](./prompts/)):
 |---|-------|---------|--------|
 | 1 | Idea | `/brief` | `docs/product/brief.md` |
 | 2 | Requirements | `/prd` | `docs/product/prd.md` |
-| 3 | Specification | `/spec`, `/design` | `docs/spec/*.md`, `docs/design/design.md` |
+| 3 | Specification | `/spec`, `/design`, `/acceptance` | `docs/spec/*.md`, `docs/design/design.md`, `docs/spec/behavior/*.feature` |
 | 4 | Decisions | `/adr` | `docs/adr/ADR-NNNN-*.md` |
 | 5 | Planning | `/plan` | `docs/plan/milestones.md`, `docs/plan/backlog.md` |
 | 6 | Implementation | `/implement TASK-XXX` | `src/`, `tests/` |

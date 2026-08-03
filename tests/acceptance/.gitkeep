@@ -1,0 +1,3 @@
+# Step definitions and runner glue for the docs/spec/behavior/*.feature scenarios.
+# The runner is a per-project choice (an ADR) — see ../README.md. Delete this once real
+# acceptance tests live here.
