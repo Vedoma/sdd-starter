@@ -3,7 +3,7 @@
 Thanks for taking the time. This scaffold is opinionated, and its opinions are stated
 where they belong — not restated here. Two files are the actual rules:
 
-- [`constitution.md`](./constitution.md) — the binding principles (C1–C9). Read it first.
+- [`constitution.md`](./constitution.md) — the binding principles (C1–C10). Read it first.
   Every contribution must satisfy it, and `spec-lint` enforces the machine-checkable parts.
 - [`AGENTS.md`](./AGENTS.md) — the operational manual (which phase you are in, which
   command to run, when to stop for a human). This applies whether "you" are a person or
