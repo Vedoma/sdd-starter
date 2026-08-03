@@ -49,8 +49,8 @@ block a non-compliant PR rather than trusting an agent to remember the rules. Th
 ## Repository Structure
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/e436a8f2-c095-48e9-95d1-356e8ad5e1e0">
-  <img src="https://github.com/user-attachments/assets/059ce33d-65a2-494d-9147-c5d5674ddcf8" alt="Repository map">
+  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/244ec9a3-3a04-4c3e-994b-5127ad2e2d04">
+  <img src="https://github.com/user-attachments/assets/a90cb448-5824-412a-858d-1964c40a2311" alt="Repository map">
 </picture>
 
 ```
@@ -90,9 +90,9 @@ block a non-compliant PR rather than trusting an agent to remember the rules. Th
 ## The Workflow
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/a32495dc-f228-40c4-88ae-d74346ed0801">
-  <img src="https://github.com/user-attachments/assets/f8090e8d-63ee-420f-b4b3-f3e3c98b081d" alt="The workflow: six phases, one command each">
-</picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/1815b82f-70f3-4304-91b3-e53bab8908c0">
+  <img src="https://github.com/user-attachments/assets/4f3f3e6c-b0c0-4bec-961d-52266fde0866" alt="The workflow: six phases, one command each">
+</picture
 
 Each phase has a command (Claude Code: [`.claude/commands/`](./.claude/commands/)) backed
 by a tool-agnostic prompt (any agent: [`prompts/`](./prompts/)):
@@ -111,6 +111,11 @@ Agents draft; humans accept. Every generated document marks inferences
 [`AGENTS.md`](./AGENTS.md).
 
 ## Behaviour, Specified Before It's Built
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/d64888e3-4215-4bb3-8946-b469f90ac0f2">
+  <img src="https://github.com/user-attachments/assets/821292b6-02e3-48fb-8de3-e1317054d741" alt="Behaviour, Written First">
+</picture
 
 When a capability has user-facing behaviour (`capabilities.behavior: true`), the scaffold
 captures it as **executable acceptance scenarios authored in Phase 3, before the code** - the
@@ -144,8 +149,8 @@ cites resolves to one.
 ## Getting Started
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/062260cd-c97d-40bb-8c1b-3916b39d5601">
-  <img src="https://github.com/user-attachments/assets/bc778187-8a87-4c0e-acf0-d4e68fa25e57" alt="Your first 60 seconds: clone, declare, start">
+  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/7a63c3ac-4c99-4351-bffc-036e93836b62">
+  <img src="https://github.com/user-attachments/assets/a6a68c94-72c1-46b9-8b47-752bb56b2b06" alt="Your first 60 seconds: clone, declare, start">
 </picture>
 
 1. **Clone and rename** this repo.
@@ -198,8 +203,8 @@ the full, enforceable list.
 ## Choosing What's Mandatory
 
 <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/a5541983-fa72-45ef-b287-ef1f38e21d7a">
-    <img src="https://github.com/user-attachments/assets/dc337fb5-f3b5-4e1e-b767-9b7e614034b5" alt="What's mandatory: core + capabilities + process">
+    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/eff1bd4c-f73f-4ce7-b3e5-42a40ee0b723">
+    <img src="https://github.com/user-attachments/assets/c01eb4b7-d6fd-4967-b95f-1b882268691f" alt="What's mandatory: core + capabilities + process">
 </picture>
 
 No team-size tiers. Which documents are required is a real, machine-read setting driven by
