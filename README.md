@@ -49,8 +49,8 @@ block a non-compliant PR rather than trusting an agent to remember the rules. Th
 ## Repository Structure
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/e436a8f2-c095-48e9-95d1-356e8ad5e1e0">
-  <img src="https://github.com/user-attachments/assets/059ce33d-65a2-494d-9147-c5d5674ddcf8" alt="Repository map">
+  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/244ec9a3-3a04-4c3e-994b-5127ad2e2d04">
+  <img src="https://github.com/user-attachments/assets/a90cb448-5824-412a-858d-1964c40a2311" alt="Repository map">
 </picture>
 
 ```
@@ -90,9 +90,9 @@ block a non-compliant PR rather than trusting an agent to remember the rules. Th
 ## The Workflow
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/a32495dc-f228-40c4-88ae-d74346ed0801">
-  <img src="https://github.com/user-attachments/assets/f8090e8d-63ee-420f-b4b3-f3e3c98b081d" alt="The workflow: six phases, one command each">
-</picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/1815b82f-70f3-4304-91b3-e53bab8908c0">
+  <img src="https://github.com/user-attachments/assets/4f3f3e6c-b0c0-4bec-961d-52266fde0866" alt="The workflow: six phases, one command each">
+</picture
 
 Each phase has a command (Claude Code: [`.claude/commands/`](./.claude/commands/)) backed
 by a tool-agnostic prompt (any agent: [`prompts/`](./prompts/)):
@@ -110,28 +110,64 @@ Agents draft; humans accept. Every generated document marks inferences
 `[INFERRED - CONFIRM]` and gaps `[OPEN - REQUIRES INPUT]` rather than guessing. See
 [`AGENTS.md`](./AGENTS.md).
 
+## Behaviour, Specified Before It's Built
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/d64888e3-4215-4bb3-8946-b469f90ac0f2">
+  <img src="https://github.com/user-attachments/assets/821292b6-02e3-48fb-8de3-e1317054d741" alt="Behaviour, Written First">
+</picture
+
+When a capability has user-facing behaviour (`capabilities.behavior: true`), the scaffold
+captures it as **executable acceptance scenarios authored in Phase 3, before the code** - the
+behavioural half of the spec ([`docs/spec/behavior/`](./docs/spec/behavior/)). This is
+constitution **C10**, and it is how C5 ("tests derive from acceptance criteria") stops being
+an honour system: a scenario written before the implementation cannot be reverse-engineered
+from it. A defining example a human already accepted is also the highest-leverage instruction
+you can hand a coding agent - the oracle `/implement` codes against, and the thing you review
+*instead of* the diff.
+
+Behaviour is worked as **three practices**, and only the middle one is about writing Gherkin:
+
+- **Discovery** (`/discover`, Phase 2) - facilitate an Example Mapping conversation: rules,
+  concrete examples, and the open questions they surface. The value is the shared
+  understanding, not the file.
+- **Formulation** (`/acceptance`, Phase 3) - turn the agreed examples into concrete scenarios
+  carrying stable `@AC-` ids that the spec and backlog tasks cite. Traceability flows outward
+  from the scenario; a dangling citation fails `spec-lint`.
+- **Automation** (`/implement`, Phase 6) - make the cited scenarios pass, **selectively**.
+  Automation is a by-product that keeps the agreement honest, not the goal.
+
+Two altitudes keep it from sprawling: product-level **journeys**
+([`docs/spec/behavior/journeys/`](./docs/spec/behavior/journeys/), a few end-to-end `@journey`
+happy paths) sit thinly above the per-capability **feature** scenarios. The Gherkin writing
+rules are a vendored, pluggable contract
+([`gherkin-guidelines.md`](./docs/spec/behavior/gherkin-guidelines.md)) - Gherkin is the
+**default, not a mandate**. It is all optional and light: turn it on when it earns its keep,
+and `spec-lint` then requires a real, `@AC-`traced scenario and checks that every id a task
+cites resolves to one.
+
 ## Getting Started
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/062260cd-c97d-40bb-8c1b-3916b39d5601">
-  <img src="https://github.com/user-attachments/assets/bc778187-8a87-4c0e-acf0-d4e68fa25e57" alt="Your first 60 seconds: clone, declare, start">
+  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/7a63c3ac-4c99-4351-bffc-036e93836b62">
+  <img src="https://github.com/user-attachments/assets/a6a68c94-72c1-46b9-8b47-752bb56b2b06" alt="Your first 60 seconds: clone, declare, start">
 </picture>
 
 1. **Clone and rename** this repo.
 2. **Declare your project** in [`sdd.config.yml`](./sdd.config.yml) - set `capabilities`
-   (`ui` / `api` / `data`) and `process` (`prd` / `milestones`); that decides which docs
-   are mandatory.
-3. **Read [`constitution.md`](./constitution.md)** — the binding rules. Check the `Status`
+   (`ui` / `api` / `data` / `behavior`) and `process` (`prd` / `milestones`); that decides
+   which docs are mandatory.
+3. **Read [`constitution.md`](./constitution.md)** - the binding rules. Check the `Status`
    column: it says which clauses a machine actually blocks and which are review-only or
    not yet enforced at all. Do not assume a rule is checked because it is written down.
-4. **Do the setup in [`docs/repo-setup.md`](./docs/repo-setup.md)** — required status
+4. **Do the setup in [`docs/repo-setup.md`](./docs/repo-setup.md)** - required status
    checks, branch protection, CODEOWNERS. Until that is done the check runs but nothing
    *blocks* a merge, and C8 is not enforced at all.
 5. **Enable the local hook** (optional): `git config core.hooksPath .githooks`.
 6. **Start at `/brief`** (or, for an existing codebase, write a minimal
    `docs/spec/technical-spec.md` of what is already true and drive changes through
    `docs/changes/`).
-7. **Work phase by phase** — do not implement ahead of an accepted spec. Every PR fills
+7. **Work phase by phase** - do not implement ahead of an accepted spec. Every PR fills
    [`.github/PULL_REQUEST_TEMPLATE.md`](./.github/PULL_REQUEST_TEMPLATE.md); the Spec
    Reference is mandatory and CI-enforced.
 
@@ -145,7 +181,7 @@ Agents draft; humans accept. Every generated document marks inferences
 This scaffold is the downstream half of a pipeline. The
 [**forge-md**](https://github.com/Vedoma/forge-md) workbench takes an idea through
 collaborative, multi-model spec review and exports a **bundle** that unzips straight into
-this structure — phases 1–5 already filled (brief, PRD, spec, decisions, plan). You then
+this structure - phases 1–5 already filled (brief, PRD, spec, decisions, plan). You then
 enter at `/implement`. The mapping is described in the optional
 [`docs/ecosystem/forge-md.md`](./docs/ecosystem/forge-md.md) (delete it if you never use
 forge-md).
@@ -160,29 +196,30 @@ The binding principles live in **[`constitution.md`](./constitution.md)** - each
 CI/review mechanism that enforces it. In short: the spec is the single source of truth;
 spec overreach is a defect; accepted specs are never edited silently (use the
 `SPEC_VERSION.md` amendment process); ADRs are immutable (supersede, never overwrite);
-tests derive from acceptance criteria; no secrets in the repo; every change is reviewable
-and reversible. Read the constitution for the full, enforceable list.
+tests derive from acceptance criteria; behaviour is specified before it's built (C10); no
+secrets in the repo; every change is reviewable and reversible. Read the constitution for
+the full, enforceable list.
 
 ## Choosing What's Mandatory
 
 <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/a5541983-fa72-45ef-b287-ef1f38e21d7a">
-    <img src="https://github.com/user-attachments/assets/dc337fb5-f3b5-4e1e-b767-9b7e614034b5" alt="What's mandatory: core + capabilities + process">
+    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/eff1bd4c-f73f-4ce7-b3e5-42a40ee0b723">
+    <img src="https://github.com/user-attachments/assets/c01eb4b7-d6fd-4967-b95f-1b882268691f" alt="What's mandatory: core + capabilities + process">
 </picture>
 
 No team-size tiers. Which documents are required is a real, machine-read setting driven by
 two honest axes in [`sdd.config.yml`](./sdd.config.yml): **capabilities** - what the project
-is (`ui` → design spec, `api` → api-contracts, `data` → data-model) - and **process** - how
-much planning you want (`prd`, `milestones`). The core (brief, technical-spec, backlog) is
-always required; `spec-lint` enforces exactly what the config resolves to. A data-less CLI
-is never asked for a data model; a solo UI app still gets its design spec. See
-[`docs/profiles.md`](./docs/profiles.md) for the model and starting points.
+is (`ui` → design spec, `api` → api-contracts, `data` → data-model, `behavior` → acceptance
+scenarios) - and **process** - how much planning you want (`prd`, `milestones`). The core
+(brief, technical-spec, backlog) is always required; `spec-lint` enforces exactly what the
+config resolves to. A data-less CLI is never asked for a data model; a solo UI app still gets
+its design spec. See [`docs/profiles.md`](./docs/profiles.md) for the model and starting points.
 
 ## License
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/c3f4882d-6c5c-487a-97d8-93de04520344">
-  <img src="https://github.com/user-attachments/assets/8589c6e6-1528-4372-a755-8de2e37092af" alt="MIT License — free of charge, forever">
+  <img src="https://github.com/user-attachments/assets/8589c6e6-1528-4372-a755-8de2e37092af" alt="MIT License - free of charge, forever">
 </picture>
 
 MIT. Use it freely for commercial and open-source projects.
