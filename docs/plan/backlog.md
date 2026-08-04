@@ -1,4 +1,4 @@
-# Implementation Backlog: [Product Name]
+# Implementation Backlog: Gate Verification
 
 <!--
 PHASE 5 — IMPLEMENTATION BACKLOG
@@ -135,49 +135,41 @@ Increment task numbers sequentially across all milestones.
 
 ---
 
-### TASK-004: [Task Title]
+### TASK-004: Verify the spec-lint gate blocks a non-compliant merge (DO NOT MERGE)
 
 <!--
-TEMPLATE BLOCK - copy it for each real task, then DELETE this one.
-
-Deleting it matters more than it looks: spec-lint skips the task checks for this WHOLE
-FILE while the "[Task Title]" placeholder appears anywhere in it, and it does so
-silently. Leave this block in place and your real tasks are not checked for a Spec
-Reference or for acceptance criteria, while spec-lint still reports "passed".
+THROWAWAY VERIFICATION TASK. This deliberately violates constitution C5 — a task must
+carry >=2 acceptance criteria — so that spec-lint fails and the required status check
+blocks the merge. It also replaces the shipped template block (and the placeholder H1
+product name), without which spec-lint would silently skip every task check in this file.
+Close this PR without merging and delete the branch.
 -->
-
 
 | Field | Value |
 |-------|-------|
-| **Spec Reference** | §[x.x] |
-| **ADR Reference** | ADR-[XXXX] (if applicable) |
+| **Spec Reference** | §1.1 (structural — verification only) |
+| **ADR Reference** | — |
 | **Milestone** | 1 |
-| **Priority** | P0 / P1 / P2 |
-| **Effort** | S / M / L / XL |
-| **Blocked By** | TASK-[XXX] (or —) |
-| **Assigned To** | [Name / AI] |
+| **Priority** | P2 |
+| **Effort** | S |
+| **Blocked By** | — |
+| **Assigned To** | AI |
 | **Status** | To Do |
 
 **Context:**
-[2–3 sentences explaining the purpose of this task and how it fits the broader system. Reference the spec section.]
+Exists only to prove the merge gate works: `spec-lint` should report an error for this
+task and, with branch protection active, GitHub should block the merge rather than merely
+annotate it.
 
 **Implementation Instructions:**
-1. [Step 1 — specific, referencing the spec where relevant]
-2. [Step 2]
-3. [Step 3]
+1. None — this task is never implemented.
 
 **Acceptance Criteria:**
-- [ ] [Criterion 1 — binary, verifiable without interpretation]
-- [ ] [Criterion 2]
-- [ ] [Criterion 3]
-
-**Acceptance Scenarios** *(when `capabilities.behavior` is on):*
-- The `@AC-…` scenarios in `docs/spec/behavior/` this task must make pass — e.g.
-  `@AC-login-2`, `@AC-login-3`. These are authored in Phase 3; a task cites them, it does
-  not invent them. `/implement` makes exactly these green and never weakens them.
+- [ ] Only one acceptance criterion is present here — this single checkbox is the
+  deliberate C5 violation the gate must catch
 
 **Do Not:**
-- [Anti-pattern or constraint — what should NOT be done in this task]
+- Merge this PR.
 
 ---
 
