@@ -28,8 +28,9 @@ Guidance for the next entry:
 
 - Synced the optional forge-md interop contract (`docs/ecosystem/forge-md.md`) with
   forge-md `ADR-0025`: added the reserved `BEHAVIOR` kind (`docs/spec/behavior/*.feature`,
-  multi) and the `@AC-`/C10 behaviour axis, closing the drift between the two mirrors. The
-  contract doc's own version stays `1.0` (the kind folds into its still-unreleased 1.0). (#44)
+  multi) and the `@AC-`/C10 behaviour axis, and marked the sdd-starter side of the contract
+  `accepted` at `1.0` (dated 2026-08-07) — closing the drift between the two mirrors. The
+  contract version stays `1.0` (the kind was already part of the ratified definition). (#44)
 
 ## [0.1.0] - 2026-08-04
 

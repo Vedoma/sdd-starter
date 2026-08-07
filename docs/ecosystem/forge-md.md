@@ -1,7 +1,7 @@
 ---
 kind: contract
 version: 1.0
-status: draft
+status: accepted
 source: sdd-starter
 ---
 
@@ -120,12 +120,12 @@ breaking change (a moved path, a renamed kind, a changed cardinality).
 
 | Version | Date | Change |
 | --- | --- | --- |
-| 1.0 | (unreleased) | Initial contract: kinds/paths, frontmatter, active/archived, ADR conventions, template canonicalization. Includes the reserved `BEHAVIOR` kind (`docs/spec/behavior/*.feature`, multi) and the `@AC-`/C10 behaviour axis. |
+| 1.0 | 2026-08-07 | Initial contract: kinds/paths, frontmatter, active/archived, ADR conventions, template canonicalization. Includes the reserved `BEHAVIOR` kind (`docs/spec/behavior/*.feature`, multi) and the `@AC-`/C10 behaviour axis. |
 
-> Adding `BEHAVIOR` would normally be a **minor** bump per §7, but 1.0 is still
-> unreleased, so additive changes fold into it until release. `BEHAVIOR` is reserved to
-> keep this mirror in step with the upstream contract; the first bump to 1.1 is reserved
-> for the next additive change after 1.0 is released.
+> `BEHAVIOR` is part of the accepted 1.0 contract, not an addition to it - the ratified
+> definition already reserves the kind and this mirror was simply missing the row, so
+> completing it needed no version bump. The first **minor** bump to 1.1 is reserved for the
+> next genuinely additive change to the contract.
 
 ## 8. References
 
