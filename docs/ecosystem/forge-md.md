@@ -132,7 +132,5 @@ breaking change (a moved path, a renamed kind, a changed cardinality).
 
 - [forge-md](https://github.com/Vedoma/forge-md) - the upstream workbench; its export
   implementation and decision records define the authoritative mapping.
-- forge-md **ADR-0025** (*SDD Artifact Contract*) - the authoritative decision record this
-  file mirrors; the two must be bumped together.
 - This scaffold's `docs/adr/`, `docs/plan/`, `docs/changes/`, and `docs/spec/behavior/` -
   the target structure a bundle lands into.
