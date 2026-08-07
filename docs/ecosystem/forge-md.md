@@ -123,10 +123,9 @@ breaking change (a moved path, a renamed kind, a changed cardinality).
 | 1.0 | (unreleased) | Initial contract: kinds/paths, frontmatter, active/archived, ADR conventions, template canonicalization. Includes the reserved `BEHAVIOR` kind (`docs/spec/behavior/*.feature`, multi) and the `@AC-`/C10 behaviour axis. |
 
 > Adding `BEHAVIOR` would normally be a **minor** bump per §7, but 1.0 is still
-> unreleased and the authoritative forge-md **ADR-0025** (accepted 2026-08-06) ratifies
-> the contract *at 1.0 with `BEHAVIOR` reserved*. Folding the kind into the unreleased 1.0
-> keeps the two mirrors identical; the first bump to 1.1 is reserved for the next additive
-> change after release.
+> unreleased, so additive changes fold into it until release. `BEHAVIOR` is reserved to
+> keep this mirror in step with the upstream contract; the first bump to 1.1 is reserved
+> for the next additive change after 1.0 is released.
 
 ## 8. References
 
