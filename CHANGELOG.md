@@ -22,6 +22,16 @@ Guidance for the next entry:
   fresh [Unreleased] block above it.
 -->
 
+## [0.1.1] - 2026-08-07
+
+### Fixed
+
+- Synced the optional forge-md interop contract (`docs/ecosystem/forge-md.md`) with
+  forge-md `ADR-0025`: added the reserved `BEHAVIOR` kind (`docs/spec/behavior/*.feature`,
+  multi) and the `@AC-`/C10 behaviour axis, and marked the sdd-starter side of the contract
+  `accepted` at `1.0` (dated 2026-08-07) — closing the drift between the two mirrors. The
+  contract version stays `1.0` (the kind was already part of the ratified definition). (#44)
+
 ## [0.1.0] - 2026-08-04
 
 First public release of the SDD Starter scaffold — a plain-Markdown, zero-lock-in
@@ -67,5 +77,6 @@ itself remains `1.0 (unreleased)` pending owner sign-off. See `constitution.md`.
   bug-report and feature-request issue forms, a PR template, `CODEOWNERS` (shipped commented
   for adopters to fill), and this changelog.
 
-[Unreleased]: https://github.com/Vedoma/sdd-starter/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/Vedoma/sdd-starter/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/Vedoma/sdd-starter/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Vedoma/sdd-starter/releases/tag/v0.1.0

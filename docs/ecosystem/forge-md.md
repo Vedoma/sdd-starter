@@ -1,7 +1,7 @@
 ---
 kind: contract
 version: 1.0
-status: draft
+status: accepted
 source: sdd-starter
 ---
 
@@ -43,6 +43,7 @@ authoritative and come only from this table (never from user input).
 | `API_CONTRACTS` | `api-contracts` | `docs/spec/api-contracts.md` | singleton |
 | `DATA_MODEL` | `data-model` | `docs/spec/data-model.md` | singleton |
 | `DESIGN` | `design` | `docs/design/design.md` | singleton |
+| `BEHAVIOR` (reserved) | `behavior` | `docs/spec/behavior/*.feature` | **multi** (reserved - see below) |
 | `MILESTONES` | `milestones` | `docs/plan/milestones.md` | singleton (projection) |
 | `BACKLOG` | `backlog` | `docs/plan/backlog.md` | singleton (projection) |
 | `DECISIONS` | `decisions` | `docs/adr/ADR-NNNN-*.md` | **multi** (see §5) |
@@ -51,6 +52,12 @@ authoritative and come only from this table (never from user input).
 - `MILESTONES` / `BACKLOG` are **projections** of forge-md's task/milestone entities,
   rendered to Markdown at export; they are not free-form stored docs.
 - `NOTES` is a forge-md convenience with no methodology role; it lands at the repo root.
+- `BEHAVIOR` is **reserved**: the path mapping is fixed here, but forge-md does not
+  generate behaviour specs yet. In sdd-starter these `docs/spec/behavior/*.feature`
+  scenarios are authored in-repo (Phase 3, `/acceptance`), are **multi-file**, and carry
+  stable `@AC-` trace tags that backlog tasks cite - the acceptance criteria a human
+  accepts *before* the code (constitution C10). Reserving the kind keeps this mirror in
+  step with the starter without obliging forge-md to emit the kind.
 
 ## 3. Shared frontmatter schema
 
@@ -113,11 +120,16 @@ breaking change (a moved path, a renamed kind, a changed cardinality).
 
 | Version | Date | Change |
 | --- | --- | --- |
-| 1.0 | (unreleased) | Initial contract: kinds/paths, frontmatter, active/archived, ADR conventions, template canonicalization. |
+| 1.0 | 2026-08-07 | Initial contract: kinds/paths, frontmatter, active/archived, ADR conventions, template canonicalization. Includes the reserved `BEHAVIOR` kind (`docs/spec/behavior/*.feature`, multi) and the `@AC-`/C10 behaviour axis. |
+
+> `BEHAVIOR` is part of the accepted 1.0 contract, not an addition to it - the ratified
+> definition already reserves the kind and this mirror was simply missing the row, so
+> completing it needed no version bump. The first **minor** bump to 1.1 is reserved for the
+> next genuinely additive change to the contract.
 
 ## 8. References
 
 - [forge-md](https://github.com/Vedoma/forge-md) - the upstream workbench; its export
   implementation and decision records define the authoritative mapping.
-- This scaffold's `docs/adr/`, `docs/plan/`, and `docs/changes/` - the target structure a
-  bundle lands into.
+- This scaffold's `docs/adr/`, `docs/plan/`, `docs/changes/`, and `docs/spec/behavior/` -
+  the target structure a bundle lands into.
