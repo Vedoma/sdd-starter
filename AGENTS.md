@@ -43,7 +43,8 @@ scenarios. See [`docs/spec/behavior/`](./docs/spec/behavior/) and [`tests/`](./t
 
 **Change-based sustain** (post-MVP / brownfield, `process.mode: sustain`) - do not edit
 accepted specs ad hoc.
-Every change is a delta: `/change` opens `docs/changes/CHANGE-XXXX/`; on delivery the
+Every change is a delta: `/change` opens `docs/changes/CHANGE-NNNN/` (the next free
+number, registered in `docs/changes/README.md`); on delivery the
 delta folds into the living spec and the change is archived. See
 [`docs/changes/`](./docs/changes/).
 
