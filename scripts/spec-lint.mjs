@@ -130,20 +130,94 @@ function activeChangeDirs() {
     .map((d) => `${base}/${d.name}`)
 }
 
-// ---- 3. ADR index consistency: files <-> README registry (C4, C8) ----------------
-function lintAdrIndex() {
+// ---- 3. ADR registry: files <-> README rows agree; no ADR merges proposed (C4, C8) --
+// The Decision Registry is what people read; the front matter is what adr-status.yml writes.
+// A row that merely exists can say anything, so every ADR needs a row whose Status matches its
+// front-matter status, and every row needs its file (ADRs are never deleted). On a PR, no ADR
+// the PR touches may still be `proposed`: acceptance happens on the open PR (/adr accept),
+// before merge. Structural, so it runs in scaffold mode too.
+
+// Every row of every Markdown table in `md` whose header has all of `columns`, as an object
+// keyed by lower-cased header text.
+function tableRows(md, columns) {
+  const rows = []
+  let header = null
+  for (const line of md.replace(/\r\n/g, '\n').split('\n')) {
+    if (!line.trim().startsWith('|')) {
+      header = null
+      continue
+    }
+    const cells = line.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map((c) => c.trim())
+    if (!header) {
+      header = cells.map((c) => c.toLowerCase())
+      continue
+    }
+    if (cells.every((c) => /^:?-+:?$/.test(c))) continue
+    if (columns.every((c) => header.includes(c)))
+      rows.push(Object.fromEntries(header.map((h, i) => [h, cells[i] ?? ''])))
+  }
+  return rows
+}
+
+// The front-matter `status` of an ADR, or null.
+function adrStatus(txt) {
+  const fm = (txt || '').replace(/\r\n/g, '\n').match(/^---\n([\s\S]*?)\n---/)
+  const m = fm && fm[1].match(/^status:\s*['"]?([^'"\n]+?)['"]?\s*$/m)
+  return m ? m[1].trim() : null
+}
+
+// "superseded by ADR-0007" / "**Accepted**" -> { state: 'superseded', by: 'ADR-0007' }
+function adrState(text) {
+  return {
+    state: (text.toLowerCase().match(/[a-z]+/) || [''])[0],
+    by: (text.match(/ADR-\d{4}/i) || [''])[0].toUpperCase(),
+  }
+}
+
+function lintAdrRegistry() {
   const dir = 'docs/adr'
   if (!existsSync(dir)) return
-  const readme = read(`${dir}/README.md`) || ''
+  const rows = tableRows(read(`${dir}/README.md`) || '', ['id', 'status'])
   const files = readdirSync(dir).filter(
     (f) => /^ADR-\d{4}-.*\.md$/.test(f) && f !== 'ADR-0000-template.md'
   )
   for (const f of files) {
     const id = f.match(/^(ADR-\d{4})/)[1]
-    if (!readme.includes(id)) err('C4', `docs/adr/README.md is missing a registry row for ${id} (${f})`)
+    const row = rows.find((r) => new RegExp(`\\b${id}\\b`).test(r.id))
+    if (!row) {
+      err('C4', `docs/adr/README.md is missing a registry row for ${id} (${f})`)
+      continue
+    }
+    const status = adrStatus(read(`${dir}/${f}`))
+    if (status === null) {
+      err('C4', `${dir}/${f} has no front-matter status - the registry check and the merge gate read it from there (see ADR-0000-template.md)`)
+      continue
+    }
+    const file = adrState(status)
+    const listed = adrState(row.status)
+    if (listed.state === 'superseded' && !listed.by) listed.by = adrState(row['superseded by'] || '').by
+    if (file.state !== listed.state || file.by !== listed.by)
+      err(
+        'C4',
+        `docs/adr/README.md lists ${id} as "${listed.by ? `${listed.state} by ${listed.by}` : row.status}", but ${f} front matter says "${status}" - update the registry row (the /adr commands keep it in step)`
+      )
+  }
+  for (const r of rows) {
+    const id = (r.id.match(/ADR-\d{4}/) || [])[0]
+    if (id && id !== 'ADR-0000' && !files.some((f) => f.startsWith(`${id}-`)))
+      err('C4', `docs/adr/README.md lists ${id}, but no docs/adr/${id}-*.md exists - ADRs are never deleted; restore the file`)
+  }
+  for (const p of CHANGED || []) {
+    if (!/^docs\/adr\/ADR-\d{4}-.*\.md$/.test(p) || p.endsWith('/ADR-0000-template.md') || !existsSync(p)) continue
+    const status = adrStatus(read(p))
+    if (status !== null && adrState(status).state === 'proposed')
+      err(
+        'C4',
+        `${p} is still status: 'proposed' - an ADR is accepted or rejected on its open PR, before merge: a maintainer comments /adr accept (or /adr reject "<reason>"); see docs/adr/README.md`
+      )
   }
 }
-lintAdrIndex()
+lintAdrRegistry()
 
 // ---- 4. PR carries a filled Spec Reference (C1) -----------------------------------
 if (!SCAFFOLD && process.env.PR_BODY != null) {

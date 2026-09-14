@@ -31,6 +31,11 @@ Guidance for the next entry:
   `partial`.
 - Diff-aware `spec-lint` checks: on a pull request the workflow passes the changed paths as
   `CHANGED_FILES`; local runs leave it unset and those checks are skipped.
+- `spec-lint` blocks merging an ADR that is still `proposed`, and the Decision Registry must
+  agree with each ADR's front-matter `status` in both directions (a row per file, a file per
+  row). `adr-status` now updates the registry row too, then dispatches `spec-lint` on the PR
+  branch, because its workflow-token commit does not trigger `pull_request`. Constitution
+  C4 records the new coverage and stays `partial`.
 
 ### Fixed
 
