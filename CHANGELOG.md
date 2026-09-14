@@ -41,6 +41,16 @@ Guidance for the next entry:
   `[Task Title]`, `[Title]`, `[Date]`, `[x.x]`, a `YYYY-MM-DD` date). HTML comments, code and
   links are ignored, so prose does not trip it. A leftover backlog template block now fails
   instead of silently switching the task checks off.
+- The relationship between the spec's Revision History and `SPEC_VERSION.md` is written down
+  (`SPEC_VERSION.md` → "Two version records"): the history may advance while `Draft`;
+  `SPEC_VERSION.md` moves only on acceptance and amendments. `spec-lint` fails a `sustain`
+  project whose two records disagree, and warns under `greenfield` once the spec is
+  `Accepted`.
+
+### Changed
+
+- The `technical-spec.md` template starts at version `0.1`, matching `SPEC_VERSION.md`. It
+  said `1.0`, so the starter shipped the very disagreement it now checks for.
 
 ### Fixed
 

@@ -117,6 +117,12 @@ document, `SPEC_VERSION.md`, and every active change directory that still carrie
 placeholder (`[Product Name]`, `[Name]`, `[Task Title]`, a `YYYY-MM-DD` date, ...). Replace
 them when you adopt a document; never leave them for later.
 
+The spec keeps two version records with different jobs: its own Revision History (a row per
+substantive edit, free to advance while `Draft`) and `SPEC_VERSION.md` (the accepted version,
+which moves only on acceptance and amendments). When you amend, bump both in the same change;
+under `sustain`, `spec-lint` fails when they disagree. See `SPEC_VERSION.md` →
+"Two version records".
+
 ## Non-negotiables (see constitution.md for the full list + enforcement)
 
 - The specification is the single source of truth; no code without a spec entry.
