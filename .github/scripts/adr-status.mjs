@@ -15,6 +15,9 @@
 //   ADR_DIR       directory holding ADR files (default: docs/adr)
 //   GITHUB_OUTPUT step output file
 //
+// Besides the ADR file(s), a transition updates the matching Decision Registry row in
+// ${ADR_DIR}/README.md (spec-lint fails a PR whose registry disagrees with the front matter).
+//
 // Output (to GITHUB_OUTPUT): ok=true|false, plus on success
 //   changed=<space-separated files> newstatus=<...> summary=<...>
 // or on a handled failure: error=<message>. Always exits 0 so the workflow
@@ -128,6 +131,48 @@ function adrId(file) {
   return `ADR-${basename(file).split('-')[1]}`
 }
 
+// Sets `updates` ({ column: value }, lower-cased header names) on the Decision Registry row
+// for `id` in README.md. Values come from a fixed set - statuses and ADR ids - never from the
+// comment. Returns the README path when a row changed, else null (no README, no row: spec-lint
+// reports a missing row on its own).
+function syncRegistryRow(id, updates) {
+  const path = join(ADR_DIR, 'README.md')
+  let text
+  try {
+    text = readFileSync(path, 'utf8')
+  } catch {
+    return null
+  }
+  const lines = text.split('\n')
+  let header = null
+  let touched = false
+  for (let i = 0; i < lines.length; i++) {
+    if (!lines[i].trim().startsWith('|')) {
+      header = null
+      continue
+    }
+    const cells = lines[i].trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map((c) => c.trim())
+    if (!header) {
+      header = cells.map((c) => c.toLowerCase())
+      continue
+    }
+    const idCol = header.indexOf('id')
+    if (idCol === -1 || !new RegExp(`\\b${id}\\b`).test(cells[idCol] || '')) continue
+    for (const [col, value] of Object.entries(updates)) {
+      const k = header.indexOf(col)
+      if (k !== -1) cells[k] = value
+    }
+    const next = `| ${cells.join(' | ')} |`
+    if (next !== lines[i]) {
+      lines[i] = next
+      touched = true
+    }
+  }
+  if (!touched) return null
+  writeFileSync(path, lines.join('\n'))
+  return path
+}
+
 function findAdrFile(num) {
   const padded = String(num).padStart(4, '0')
   const files = readdirSync(ADR_DIR).filter((f) => f.startsWith(`ADR-${padded}-`) && f.endsWith('.md'))
@@ -185,6 +230,9 @@ const date = (env.DATE || '').replace(/[^0-9-]/g, '')
 const reasonClean = sanitizeReason(reason)
 const suffix = reasonClean ? `: ${reasonClean}` : ''
 const changed = []
+const addChanged = (p) => {
+  if (p && !changed.includes(p)) changed.push(p)
+}
 
 function flip(from, statusStr) {
   if (current !== from) {
@@ -195,7 +243,8 @@ function flip(from, statusStr) {
   let next = setStatus(content, statusStr, date)
   next = appendHistory(next, `- ${date} - ${statusStr} by @${actor} (#${pr})${suffix}`)
   writeFileSync(file, next)
-  changed.push(file)
+  addChanged(file)
+  addChanged(syncRegistryRow(adrId(file), { status: statusStr }))
 }
 
 if (action === 'accept') {
@@ -247,7 +296,8 @@ if (action === 'accept') {
     let tnext = setStatus(tcontent, `superseded by ${thisId}`, date)
     tnext = appendHistory(tnext, `- ${date} - superseded by ${thisId} (#${pr})`)
     writeFileSync(target, tnext)
-    changed.push(target)
+    addChanged(target)
+    addChanged(syncRegistryRow(adrId(target), { status: 'superseded', 'superseded by': thisId }))
   }
   emit({
     ok: 'true',

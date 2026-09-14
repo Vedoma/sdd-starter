@@ -28,6 +28,12 @@ item) that keeps the decision from drifting.
   a decision).
 - **One ADR per PR.** The status-automation workflow assumes exactly one changed ADR
   file per pull request.
+- **Accepted before merge.** An ADR is accepted (or rejected) on its open pull request, by a
+  maintainer's `/adr` comment - never after merge. `spec-lint` fails a pull request that
+  changes an ADR whose front-matter `status` is still `proposed`.
+- **The registry agrees with the files.** Every ADR has a row in the Decision Registry below
+  whose Status matches its front-matter `status` (for a superseded ADR, the row names the
+  successor), and every row has its file. `spec-lint` checks both directions.
 - Accepted ADRs are **immutable** - never edited after acceptance. To change a decision,
   add a new ADR and set `status: 'superseded by ADR-XXXX'` on the old one.
 - Deprecated and superseded ADRs stay in the index - never remove a row.
@@ -42,8 +48,10 @@ proposed -> accepted -> [deprecated | superseded]
 
 Maintainers (write/admin) drive transitions from a PR comment; the
 [`adr-status`](../../.github/workflows/adr-status.yml) workflow updates the front-matter
-`status` and appends to `## Status history`, then commits to the PR branch (it never
-merges). Requires branch protection on the default branch.
+`status`, appends to `## Status history` and updates the registry row, then commits to the
+PR branch (it never merges). Because a commit pushed with the workflow token does not
+trigger `pull_request`, it then dispatches `spec-lint` on the PR branch so the new head gets
+its own result. Requires branch protection on the default branch.
 
 | Comment | Effect |
 | --- | --- |

@@ -84,6 +84,12 @@ Reading that script from the default branch instead is a small change and is **o
 work**, not something this checklist can configure. Until it lands, treat `/adr accept` on a
 branch you have not reviewed as running code you have not reviewed.
 
+After it commits, `adr-status.yml` dispatches `spec-lint` on the pull request's branch from
+a second job that holds only `actions: write` and runs no repository code. A push made with
+the workflow token does not trigger `pull_request`, and `spec-lint` fails an ADR that is
+still `proposed`, so without that dispatch an accepted ADR's pull request would keep its
+failed pre-acceptance result.
+
 ## Verifying the setup
 
 Open a throwaway PR that deliberately violates a clause — e.g. add a backlog task with one

@@ -1,8 +1,12 @@
 name: ADR status update
 
-# Updates an ADR's front-matter `status` and its "## Status history" log from a
-# /adr slash command in a PR comment, then commits to the PR branch and posts a
-# confirmation. Never merges.
+# Updates an ADR's front-matter `status`, its "## Status history" log and its
+# docs/adr/README.md registry row from a /adr slash command in a PR comment, then
+# commits to the PR branch, re-runs spec-lint on it, and posts a confirmation.
+# Never merges.
+#
+# spec-lint fails a PR that changes an ADR still `proposed`, so acceptance happens
+# here, on the open PR, before merge.
 #
 # Commands (PR comments, write/admin only):
 #   /adr accept
@@ -35,6 +39,9 @@ jobs:
        contains(github.event.comment.body, '/adr reject') ||
        contains(github.event.comment.body, '/adr deprecate'))
     runs-on: ubuntu-latest
+    outputs:
+      pushed: ${{ steps.push.outputs.pushed }}
+      head_ref: ${{ steps.pr.outputs.head_ref }}
     steps:
       - name: Verify commenter has write access
         id: auth
@@ -134,6 +141,7 @@ jobs:
 
       - name: Commit, push, confirm
         if: steps.auth.outputs.authorized == 'true' && steps.apply.outputs.ok == 'true' && steps.apply.outputs.changed != ''
+        id: push
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CHANGED: ${{ steps.apply.outputs.changed }}
@@ -148,4 +156,25 @@ jobs:
           git add -- $CHANGED
           git commit -m "docs(adr): ${SUMMARY} via PR comment" -m "Triggered by @${COMMENTER} in #${PR_NUMBER}."
           git push origin "HEAD:${HEAD_REF}"
-          gh pr comment "$PR_NUMBER" --repo "$REPO" --body "Done: ${SUMMARY}. Front matter and status history updated on this PR. The workflow does not auto-merge."
+          echo "pushed=true" >> "$GITHUB_OUTPUT"
+          gh pr comment "$PR_NUMBER" --repo "$REPO" --body "Done: ${SUMMARY}. Front matter, status history and registry row updated on this PR; spec-lint is being re-run on the new head. The workflow does not auto-merge."
+
+  relint:
+    # A commit pushed with GITHUB_TOKEN does not trigger `pull_request`, so the head the job
+    # above just pushed would carry no spec-lint result - and the last one, from before the
+    # transition, failed on the `proposed` ADR. Dispatch spec-lint on the PR branch instead.
+    # A separate job so that the PR-authored script above never holds `actions: write`; this
+    # one checks nothing out and runs no repository code.
+    needs: adr-status
+    if: needs.adr-status.outputs.pushed == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Dispatch spec-lint on the PR branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          HEAD_REF: ${{ needs.adr-status.outputs.head_ref }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+        run: gh workflow run spec-lint.yml --repo "$REPO" --ref "$HEAD_REF" -f pr="$PR_NUMBER"
