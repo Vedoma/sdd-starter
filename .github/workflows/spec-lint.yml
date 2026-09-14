@@ -31,6 +31,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: Test spec-lint
+        # The scaffold's own spec-lint tests (stock node --test). Selected by name, so your
+        # project's tests under tests/ never run here.
+        run: |
+          shopt -s nullglob
+          tests=(tests/*/spec-lint-*.test.mjs)
+          if [ ${#tests[@]} -gt 0 ]; then node --test "${tests[@]}"; fi
       - name: Resolve the pull request (dispatched runs)
         if: github.event_name == 'workflow_dispatch'
         id: dispatched
@@ -41,7 +48,7 @@ jobs:
           REF_NAME: ${{ github.ref_name }}
         run: |
           [[ "$PR_NUMBER" =~ ^[0-9]+$ ]] || { echo "::error::input pr must be a pull request number"; exit 1; }
-          gh pr view "$PR_NUMBER" --repo "$REPO" --json body,baseRefName,headRefName > "$RUNNER_TEMP/pr.json"
+          gh pr view "$PR_NUMBER" --repo "$REPO" --json body,baseRefName,headRefName,author > "$RUNNER_TEMP/pr.json"
           head="$(jq -r .headRefName "$RUNNER_TEMP/pr.json")"
           if [ "$head" != "$REF_NAME" ]; then
             echo "::error::PR #$PR_NUMBER is on branch $head, but this run is on $REF_NAME"
@@ -49,12 +56,17 @@ jobs:
           fi
           jq -r '.body // ""' "$RUNNER_TEMP/pr.json" > "$RUNNER_TEMP/pr-body.md"
           echo "base_ref=$(jq -r .baseRefName "$RUNNER_TEMP/pr.json")" >> "$GITHUB_OUTPUT"
+          echo "author_login=$(jq -r .author.login "$RUNNER_TEMP/pr.json")" >> "$GITHUB_OUTPUT"
+          echo "author_type=$(jq -r 'if .author.is_bot then "Bot" else "User" end' "$RUNNER_TEMP/pr.json")" >> "$GITHUB_OUTPUT"
       - name: Run spec-lint
         env:
           # Event data reaches the script via env, never inline ${{ }} in the shell, so a
           # crafted PR body or branch name cannot inject into it.
           PR_BODY: ${{ github.event.pull_request.body }}
           BASE_REF: ${{ github.base_ref || steps.dispatched.outputs.base_ref }}
+          # spec-lint exempts bot-authored PRs from the PR-body checks (with a note).
+          PR_AUTHOR: ${{ github.event.pull_request.user.login || steps.dispatched.outputs.author_login }}
+          PR_AUTHOR_TYPE: ${{ github.event.pull_request.user.type || steps.dispatched.outputs.author_type }}
         run: |
           if [ -f "$RUNNER_TEMP/pr-body.md" ]; then
             # Dispatched run: the body was fetched above instead of read from the event.

@@ -61,6 +61,13 @@ Guidance for the next entry:
   `spec-delta.md` touches), and a `CHANGE-NNNN` must exist, active or archived. A reference
   into another document, or in prose, is still accepted on presence alone, and `spec-lint`
   prints a note naming each one. Constitution C1 stays `partial`.
+- `spec-lint` enforces the PR template's structure, not just its Spec Reference row. The
+  headings and placeholders are read from `.github/PULL_REQUEST_TEMPLATE.md` at runtime; a
+  body that drops or demotes a heading, quotes the template in a code fence, keeps a
+  placeholder, or is blank fails, naming what is missing. Ticked boxes are not required.
+  Bot-authored PRs and a body with a reasoned `spec-lint: skip-pr-template` line skip the
+  PR-body checks, with a note. The checks are covered by `node --test` fixtures in
+  `tests/integration/`, which the `spec-lint` workflow runs.
 
 ### Changed
 

@@ -23,6 +23,8 @@ const read = (p) => (existsSync(p) ? readFileSync(p, 'utf8') : null)
 
 // Spec References accepted on presence alone because they name nothing resolvable (C1).
 const presenceOnly = []
+// Informational lines - a skipped check says so instead of passing silently.
+const notes = []
 
 // What the pull request changes, or null when unknown (a local run, a push to main).
 const CHANGED =
@@ -261,8 +263,32 @@ function lintAdrRegistry() {
 lintAdrRegistry()
 
 // ---- 4. PR carries a filled Spec Reference (C1) -----------------------------------
-if (!SCAFFOLD && process.env.PR_BODY != null) {
-  const body = process.env.PR_BODY
+// The PR-body checks (this one and section 13) read PR_BODY, which CI sets on pull requests
+// only. Automated PRs are exempt from both, by one explicit policy: a bot author
+// (PR_AUTHOR_TYPE=Bot, or a login ending in [bot] - Dependabot, release automation), or a body
+// with a visible line "spec-lint: skip-pr-template - <reason>" (a pure revert, say). The
+// exemption is printed as a note, and an opt-out without a reason is an error - never a silent
+// pass. An opt-out inside an HTML comment or code fence does not count.
+const PR_BODY = SCAFFOLD ? null : (process.env.PR_BODY ?? null)
+function prExemption(body) {
+  const author = process.env.PR_AUTHOR || ''
+  if (process.env.PR_AUTHOR_TYPE === 'Bot' || /\[bot\]$/.test(author)) return `the PR author ${author || '(unknown)'} is a bot`
+  const m = withoutCommentsAndFences(body).match(/^[ \t]*spec-lint:[ \t]*skip-pr-template\b[ \t]*[-—:]?[ \t]*(.*)$/im)
+  if (!m) return null
+  const reason = m[1].trim()
+  if (!reason)
+    err(
+      'C1',
+      'the PR body opts out of the PR checks ("spec-lint: skip-pr-template") without a reason - give one, e.g. "spec-lint: skip-pr-template - reverts #123"'
+    )
+  return `the PR body opts out${reason ? `: "${reason}"` : ''}`
+}
+const PR_EXEMPT = PR_BODY == null ? null : prExemption(PR_BODY)
+if (PR_EXEMPT) notes.push(`PR body checks (Spec Reference, template structure) skipped - ${PR_EXEMPT}`)
+
+// A blank body is reported once, by section 13.
+if (PR_BODY != null && !PR_EXEMPT && PR_BODY.trim() !== '') {
+  const body = PR_BODY
   const m = body.match(/\*\*Spec Reference\*\*\s*\|([^|\n]*)/)
   const val = m ? m[1].trim() : ''
   if (!val || /^[-—\s]*$/.test(val) || /section\(s\) from technical-spec/i.test(val) || val === '§[section(s) from technical-spec.md — required]') {
@@ -448,14 +474,19 @@ const PLACEHOLDER_RES = [
   { label: 'YYYY-MM-DD', re: /(?<=\|[ \t]*)YYYY-MM-DD(?=[ \t]*\|)|(?<=\*\*[^*\n]+\*\*[ \t]*)YYYY-MM-DD/g },
 ]
 
-// The document with comments and code replaced by spaces, so line numbers still hold.
-function proseOnly(md) {
+// Markdown with fenced code blocks and HTML comments replaced by spaces, so line numbers still
+// hold and neither counts as content or structure.
+function withoutCommentsAndFences(md) {
   const blank = (m) => m.replace(/[^\n]/g, ' ')
   return md
     .replace(/\r\n/g, '\n')
     .replace(/^(```|~~~)[^\n]*\n[\s\S]*?^\1[^\n]*$/gm, blank)
     .replace(/<!--[\s\S]*?-->/g, blank)
-    .replace(/`[^`\n]*`/g, blank)
+}
+
+// ...and inline code blanked too.
+function proseOnly(md) {
+  return withoutCommentsAndFences(md).replace(/`[^`\n]*`/g, (m) => ' '.repeat(m.length))
 }
 
 function lintPlaceholders() {
@@ -642,6 +673,104 @@ function lintChangeLifecycle() {
 }
 lintChangeLifecycle()
 
+// ---- 13. The PR body keeps the PR template's structure (C1) ------------------------
+// GitHub injects .github/PULL_REQUEST_TEMPLATE.md only for web-UI or interactive creation;
+// `gh pr create --body` / `--body-file` bypass it, which is how agents open PRs. A body rebuilt
+// from memory of what CI inspects degrades to exactly the inspected part, so the structure is
+// enforced - read from the template at runtime, never hardcoded, so that editing the template
+// changes what is enforced.
+//
+// Policy, deliberately:
+// - Headings, not prose. Every template heading outside HTML comments and code fences must
+//   appear in the body at the same level with the same text. Extra sections are fine and order
+//   is not checked; a heading inside a fence or comment does not count - quoting the template
+//   is not filling it. What is written under a heading is never judged: that is review's job,
+//   and a linter that tried would be gamed with one-word sections.
+// - Checkboxes need not be ticked. Requiring ticks teaches authors to tick without reading and
+//   turns a review aid into a formality.
+// - The template's own bracketed placeholders (TASK-[XXX], M[X], ...) must be replaced, matched
+//   as those exact strings - never a generic [...] pattern, which would reject array indexing,
+//   links, or [OPEN - REQUIRES INPUT] - and in the form the template writes them: one it puts in
+//   inline code (`[your test command]`) is looked for anywhere, the rest only outside inline
+//   code, so a body that names TASK-[XXX] in backticks (a PR about the template, say) is prose.
+//   An unticked option whose label merely contains one is an option not chosen (the "Yes" line
+//   of "Spec Amendment Required?") and is ignored; an unticked item that is nothing but a
+//   placeholder was never filled in, and is not.
+// - The Spec Reference row is section 4's alone, so its placeholder is not reported here; a
+//   blank body is reported here, once. Automated PRs are exempt - see section 4.
+const PR_TEMPLATE = '.github/PULL_REQUEST_TEMPLATE.md'
+const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+const headingsOf = (md) =>
+  [...md.matchAll(/^(#{1,6})[ \t]+(.+?)(?:[ \t]+#+)?[ \t]*$/gm)].map((m) => ({
+    level: m[1].length,
+    text: m[2].replace(/\s+/g, ' '),
+  }))
+const headingLine = (h) => `${'#'.repeat(h.level)} ${h.text}`
+
+// The template's bracketed placeholders, each with the text glued to it (TASK-[XXX], M[X]),
+// and whether the template writes it inside inline code (`[your test command]`).
+function templatePlaceholders(template) {
+  const found = new Map()
+  for (const line of withoutCommentsAndFences(template).split('\n')) {
+    if (line.includes('**Spec Reference**')) continue // section 4 owns this row
+    const code = [...line.matchAll(/`[^`\n]*`/g)].map((m) => [m.index, m.index + m[0].length])
+    for (const m of line.matchAll(/[^\s|`(]*\[[^\]\n]+\][^\s|`)]*/g)) {
+      if (/^\[[ xX]\]$/.test(m[0])) continue // a bare checkbox - but M[X] is a placeholder
+      if (line[m.index + m[0].length] === '(') continue // a link
+      if (!found.has(m[0])) found.set(m[0], code.some(([start, end]) => m.index > start && m.index < end))
+    }
+  }
+  return [...found].map(([text, inCode]) => ({ text, inCode }))
+}
+
+function lintPrTemplate(body) {
+  const template = read(PR_TEMPLATE)
+  if (template == null) {
+    notes.push(`PR template structure not checked - there is no ${PR_TEMPLATE} to read it from`)
+    return
+  }
+  const bypass = `gh pr create --body / --body-file bypasses GitHub's template injection, so copy ${PR_TEMPLATE} and fill it in`
+  if (!body.trim()) {
+    err('C1', `the PR body is empty - ${bypass}`)
+    return
+  }
+  const clean = withoutCommentsAndFences(body)
+  const have = headingsOf(clean)
+  const quoted = headingsOf(body.replace(/\r\n/g, '\n'))
+  const same = (a, b) => a.level === b.level && a.text === b.text
+  const missing = headingsOf(withoutCommentsAndFences(template))
+    .filter((h) => !have.some((x) => same(x, h)))
+    .map((h) => {
+      const moved = have.find((x) => x.text === h.text)
+      if (moved) return `"${headingLine(h)}" (found as "${headingLine(moved)}" - keep the template's heading level)`
+      if (quoted.some((x) => same(x, h))) return `"${headingLine(h)}" (present only inside a code fence or HTML comment)`
+      return `"${headingLine(h)}"`
+    })
+  if (missing.length)
+    err(
+      'C1',
+      `the PR body is missing ${missing.length} section${missing.length > 1 ? 's' : ''} of ${PR_TEMPLATE}: ${missing.join(', ')} - ${bypass}, keeping every heading`
+    )
+  const lines = clean.split('\n')
+  const withoutInlineCode = (l) => l.replace(/`[^`\n]*`/g, (m) => ' '.repeat(m.length))
+  const left = templatePlaceholders(template)
+    .filter(({ text, inCode }) => {
+      const re = new RegExp(`(?<![\\w-])${escapeRe(text)}(?![\\w-])`)
+      return lines.some((l) => {
+        if (!re.test(inCode ? l : withoutInlineCode(l))) return false
+        const option = l.match(/^\s*[-*+]\s+\[ \]\s+(.*)$/)
+        return !option || option[1].trim() === text
+      })
+    })
+    .map((p) => p.text)
+  if (left.length)
+    err(
+      'C1',
+      `the PR body still carries ${PR_TEMPLATE} placeholder${left.length > 1 ? 's' : ''} ${left.map((p) => `"${p}"`).join(', ')} - replace each with the real value, or delete an example row that does not apply`
+    )
+}
+if (PR_BODY != null && !PR_EXEMPT) lintPrTemplate(PR_BODY)
+
 // ---- report ----------------------------------------------------------------------
 if (SCAFFOLD)
   console.log(
@@ -651,6 +780,7 @@ if (presenceOnly.length)
   console.log(
     `note    presence-only Spec Reference - it points at neither a technical-spec.md §section nor a CHANGE-NNNN, so it could not be resolved: ${presenceOnly.join(', ')}`
   )
+for (const n of notes) console.log(`note    ${n}`)
 for (const w of warnings) console.log(`warning ${w}`)
 for (const e of errors) console.log(`error   ${e}`)
 if (errors.length) {

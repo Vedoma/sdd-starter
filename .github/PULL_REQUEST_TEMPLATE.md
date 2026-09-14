@@ -5,6 +5,11 @@ Every PR must fill in this template. Incomplete templates block merge.
 Rule: If you implemented anything not in the spec, or differently than specified,
 document it in "Spec Deviations" below — never leave it undocumented.
 This PR must comply with constitution.md; the checks there gate merge.
+
+spec-lint checks the structure: every heading below must stay, at its level, and every
+bracketed placeholder must be replaced (ticking boxes is not required). `gh pr create --body`
+skips GitHub's template injection - copy this file and fill it in. A pure revert or release PR
+may instead carry a visible line: spec-lint: skip-pr-template - <reason>
 -->
 
 ### References
