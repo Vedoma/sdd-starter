@@ -16,10 +16,21 @@ keeps an agent's working context small (it reads the active tree, not the change
 
 - **Propose:** `/change` scaffolds `CHANGE-NNNN/` from `CHANGE-0000-template/`. The delta
   marks affected spec sections `ADDED` / `MODIFIED` / `REMOVED`.
-- **Deliver:** when the change ships, apply the delta to `docs/spec/**`, add an amendment
-  row to `SPEC_VERSION.md` (version bump), and move the change directory to `archive/`.
+- **Deliver:** when the change ships, one pull request applies the delta to `docs/spec/**`
+  (and `docs/design/**`), adds a Changelog row citing `CHANGE-NNNN` to `SPEC_VERSION.md` with
+  the version bump, moves the change directory to `archive/`, and sets its Status - in
+  `proposal.md` and in the registry - to `Archived`.
 - **Archive, never delete.** Archived changes are the durable record of *why* the spec
   looks the way it does; they are out of the default agent context, not gone.
+
+A proposal's `**Status:**` moves one way: `Proposed → Accepted → Delivered → Archived`.
+`Delivered` and `Archived` normally land in the same delivering pull request, so a change on
+the default branch is either active (`Proposed`, `Accepted`) or archived (`Delivered`,
+`Archived`). `spec-lint` fails a `Delivered` or `Archived` change outside `archive/`, an
+archived change that was never delivered, an archived change no `SPEC_VERSION.md` Changelog
+row cites, and a pull request that archives a change without also changing `SPEC_VERSION.md`
+and the living spec. Editing an archived change counts as delivering it again, so archived
+records stay frozen. Whether the folded spec edit actually matches the delta is left to review.
 
 Delivered backlog tasks move to [`docs/plan/archive/`](../plan/archive/) by the same
 principle - the active `docs/plan/backlog.md` holds only open work.

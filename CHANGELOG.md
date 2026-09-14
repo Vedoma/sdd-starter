@@ -50,6 +50,12 @@ Guidance for the next entry:
   and `docs/changes/README.md` gains a Change Registry. `spec-lint` fails a change directory
   not named `CHANGE-NNNN`, a change with no registry row or with a row whose Status disagrees
   with its `proposal.md`, and a row whose directory is gone.
+- The second half of the change lifecycle is enforced. `spec-lint` fails a `Delivered` or
+  `Archived` change outside `docs/changes/archive/`, an archived change that was never
+  delivered or that no `SPEC_VERSION.md` Changelog row cites, and a PR that archives a change
+  without also changing `SPEC_VERSION.md` and the living spec. The proposal's state machine
+  (`Proposed → Accepted → Delivered → Archived`) is spelled out. Constitution C3 records the
+  mechanics and stays `partial`: whether a folded spec edit matches its delta is review-only.
 
 ### Changed
 

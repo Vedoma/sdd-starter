@@ -109,7 +109,8 @@ tests/                       # acceptance/ (runs the .feature scenarios), integr
 Run `node scripts/spec-lint.mjs` before proposing a commit; each finding names the clause
 it enforces. But **read the `Status` column in `constitution.md` before assuming a rule is
 machine-checked** — C6 and C7 currently name mechanisms that do not exist, C3 checks the
-process mode but not the amendment bookkeeping, and C1's Spec Reference check verifies
+process mode and the mechanics of delivering a change but not that a folded spec edit
+matches its delta, and C1's Spec Reference check verifies
 presence, not that the reference resolves. Those clauses still bind you; the unchecked parts
 are simply enforced by you and the reviewer rather than by CI.
 

@@ -550,6 +550,54 @@ function lintChangeRegistry() {
 }
 lintChangeRegistry()
 
+// ---- 12. Change lifecycle: a delivered change is folded, bumped, archived (C3, C8) ---
+// Proposed -> Accepted -> Delivered -> Archived. One PR delivers a change: it folds the delta
+// into the living spec, adds a SPEC_VERSION.md Changelog row citing the change, and moves the
+// directory to docs/changes/archive/. Checked mechanically: a Delivered or Archived change may
+// not sit outside archive/; an archived change must have been delivered and be cited by a
+// Changelog row; and a PR that touches an archived change - so editing one counts as delivering
+// it again, which keeps archived records frozen - must also change SPEC_VERSION.md and the
+// living spec. Whether the folded edit matches the delta is review's job. There is no warning
+// for a change left Accepted too long: a proposal's only date is when it was written.
+function lintChangeLifecycle() {
+  const changelog = tableRows(sectionBody(read('SPEC_VERSION.md') || '', /changelog/i), ['version'])
+  const cited = (id) => changelog.some((r) => new RegExp(`\\b${id}\\b`).test(Object.values(r).join(' | ')))
+  for (const c of changeDirs()) {
+    if (!/^CHANGE-\d{4}$/.test(c.name)) continue // section 11 reports the name
+    const status = docStatus(read(`${c.path}/proposal.md`))
+    if (!status) continue // section 11 reports the missing Status
+    const delivered = /^(delivered|archived)$/i.test(status)
+    if (!c.archived && delivered)
+      err(
+        'C8',
+        `${c.path} is ${status} but still sits outside docs/changes/archive/ - move it to docs/changes/archive/${c.name} in the PR that delivers it`
+      )
+    if (c.archived && !delivered)
+      err('C8', `${c.path} is archived, but its proposal.md says "${status}" - only a Delivered change is archived`)
+    if (c.archived && !cited(c.name))
+      err(
+        'C3',
+        `${c.path} is archived, but SPEC_VERSION.md has no Changelog row referencing ${c.name} - delivering a change records its amendment and version bump there (SPEC_VERSION.md, "Amendment Process")`
+      )
+  }
+  if (!CHANGED) return
+  const archivedHere = new Set(
+    CHANGED.map((p) => (p.match(/^docs\/changes\/archive\/(CHANGE-\d{4})\//) || [])[1]).filter(
+      (id) => id && existsSync(`docs/changes/archive/${id}`)
+    )
+  )
+  for (const id of archivedHere) {
+    if (!CHANGED.includes('SPEC_VERSION.md'))
+      err('C3', `this PR archives ${id} without changing SPEC_VERSION.md - delivery adds its Changelog row and version bump in the same PR`)
+    if (!CHANGED.some((p) => /^docs\/(spec|design)\//.test(p)))
+      err(
+        'C3',
+        `this PR archives ${id} without editing the living spec (docs/spec/** or docs/design/**) - delivery folds the delta in, in the same PR`
+      )
+  }
+}
+lintChangeLifecycle()
+
 // ---- report ----------------------------------------------------------------------
 if (SCAFFOLD)
   console.log(
