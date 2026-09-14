@@ -690,9 +690,12 @@ lintChangeLifecycle()
 //   turns a review aid into a formality.
 // - The template's own bracketed placeholders (TASK-[XXX], M[X], ...) must be replaced, matched
 //   as those exact strings - never a generic [...] pattern, which would reject array indexing,
-//   links, or [OPEN - REQUIRES INPUT]. An unticked option whose label merely contains one is an
-//   option not chosen (the "Yes" line of "Spec Amendment Required?") and is ignored; an unticked
-//   item that is nothing but a placeholder was never filled in, and is not.
+//   links, or [OPEN - REQUIRES INPUT] - and in the form the template writes them: one it puts in
+//   inline code (`[your test command]`) is looked for anywhere, the rest only outside inline
+//   code, so a body that names TASK-[XXX] in backticks (a PR about the template, say) is prose.
+//   An unticked option whose label merely contains one is an option not chosen (the "Yes" line
+//   of "Spec Amendment Required?") and is ignored; an unticked item that is nothing but a
+//   placeholder was never filled in, and is not.
 // - The Spec Reference row is section 4's alone, so its placeholder is not reported here; a
 //   blank body is reported here, once. Automated PRs are exempt - see section 4.
 const PR_TEMPLATE = '.github/PULL_REQUEST_TEMPLATE.md'
@@ -704,18 +707,20 @@ const headingsOf = (md) =>
   }))
 const headingLine = (h) => `${'#'.repeat(h.level)} ${h.text}`
 
-// The template's bracketed placeholders, each with the text glued to it (TASK-[XXX], M[X]).
+// The template's bracketed placeholders, each with the text glued to it (TASK-[XXX], M[X]),
+// and whether the template writes it inside inline code (`[your test command]`).
 function templatePlaceholders(template) {
-  const found = new Set()
+  const found = new Map()
   for (const line of withoutCommentsAndFences(template).split('\n')) {
     if (line.includes('**Spec Reference**')) continue // section 4 owns this row
+    const code = [...line.matchAll(/`[^`\n]*`/g)].map((m) => [m.index, m.index + m[0].length])
     for (const m of line.matchAll(/[^\s|`(]*\[[^\]\n]+\][^\s|`)]*/g)) {
       if (/^\[[ xX]\]$/.test(m[0])) continue // a bare checkbox - but M[X] is a placeholder
       if (line[m.index + m[0].length] === '(') continue // a link
-      found.add(m[0])
+      if (!found.has(m[0])) found.set(m[0], code.some(([start, end]) => m.index > start && m.index < end))
     }
   }
-  return [...found]
+  return [...found].map(([text, inCode]) => ({ text, inCode }))
 }
 
 function lintPrTemplate(body) {
@@ -747,14 +752,17 @@ function lintPrTemplate(body) {
       `the PR body is missing ${missing.length} section${missing.length > 1 ? 's' : ''} of ${PR_TEMPLATE}: ${missing.join(', ')} - ${bypass}, keeping every heading`
     )
   const lines = clean.split('\n')
-  const left = templatePlaceholders(template).filter((p) => {
-    const re = new RegExp(`(?<![\\w-])${escapeRe(p)}(?![\\w-])`)
-    return lines.some((l) => {
-      if (!re.test(l)) return false
-      const option = l.match(/^\s*[-*+]\s+\[ \]\s+(.*)$/)
-      return !option || option[1].trim() === p
+  const withoutInlineCode = (l) => l.replace(/`[^`\n]*`/g, (m) => ' '.repeat(m.length))
+  const left = templatePlaceholders(template)
+    .filter(({ text, inCode }) => {
+      const re = new RegExp(`(?<![\\w-])${escapeRe(text)}(?![\\w-])`)
+      return lines.some((l) => {
+        if (!re.test(inCode ? l : withoutInlineCode(l))) return false
+        const option = l.match(/^\s*[-*+]\s+\[ \]\s+(.*)$/)
+        return !option || option[1].trim() === text
+      })
     })
-  })
+    .map((p) => p.text)
   if (left.length)
     err(
       'C1',

@@ -143,3 +143,14 @@ test('a project without a PR template is noted, not failed', () => {
   assert.equal(r.code, 0, r.out)
   assert.match(r.out, /note .*PR template structure not checked/)
 })
+
+test('a placeholder named in backticks is prose, but one the template writes in code still counts', () => {
+  const prose = 'This check looks for `TASK-[XXX]`, `M[X]` and `[AC from TASK-XXX]`.\n\n'
+  const named = lint({ body: FILLED.replace('<!--\nOptional.', `${prose}<!--\nOptional.`) })
+  assert.equal(named.code, 0, named.out)
+  const r = lint({
+    body: FILLED.replace('- [ ] All tests pass locally (`npm test`)', '- [x] All tests pass locally (`[your test command]`)'),
+  })
+  assert.equal(r.code, 1, r.out)
+  assert.match(r.out, /"\[your test command\]"/)
+})
