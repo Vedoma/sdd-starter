@@ -11,4 +11,7 @@ are sequential `TASK-XXX` and never reused.
 
 **Rules.**
 - No task without a Spec Reference. No acceptance criterion that is not verifiable.
+- Write Spec References `spec-lint` can resolve: `§N` for a numbered heading of
+  `docs/spec/technical-spec.md`, or `CHANGE-NNNN §N` for work a change delivers. Anything
+  else is accepted on presence alone and checked only in review.
 - Order tasks so blockers precede dependents. Present as a proposal; stop for review.
