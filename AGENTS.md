@@ -110,8 +110,8 @@ Run `node scripts/spec-lint.mjs` before proposing a commit; each finding names t
 it enforces. But **read the `Status` column in `constitution.md` before assuming a rule is
 machine-checked** — C6 and C7 currently name mechanisms that do not exist, C3 checks the
 process mode and the mechanics of delivering a change but not that a folded spec edit
-matches its delta, and C1's Spec Reference check verifies
-presence, not that the reference resolves. Those clauses still bind you; the unchecked parts
+matches its delta, and C1's Spec Reference check resolves `§N` and `CHANGE-NNNN` but accepts
+any other reference on presence alone. Those clauses still bind you; the unchecked parts
 are simply enforced by you and the reviewer rather than by CI.
 
 Once `docs/spec/technical-spec.md` is filled in, `spec-lint` also fails every required
@@ -131,4 +131,5 @@ under `sustain`, `spec-lint` fails when they disagree. See `SPEC_VERSION.md` →
 - Implementing more than the spec asks ("spec overreach") is a defect.
 - ADRs are immutable once accepted - supersede, never edit.
 - Tests are derived from acceptance criteria, not from the implementation.
-- Every PR carries a Spec Reference (enforced by spec-lint).
+- Every PR carries a Spec Reference (enforced by spec-lint, which resolves `§N` and
+  `CHANGE-NNNN`).
