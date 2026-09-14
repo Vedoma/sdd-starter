@@ -52,7 +52,7 @@ change folds its delta into the spec and records the amendment here:
 3. In the spec document, mark the changed section with `<!-- AMENDED: AMEND-ID -->` above it
 4. Update `Current Version` table above, and add a Revision History row with the same version to the spec (see "Two version records")
 5. List all backlog tasks affected in the amendment entry
-6. Move the delivered `docs/changes/CHANGE-NNNN/` to `docs/changes/archive/`
+6. Move the delivered `docs/changes/CHANGE-NNNN/` to `docs/changes/archive/`, set its Status to `Archived` in `proposal.md` and the change registry, and fill the registry's Delivered In - all in the same PR as steps 1-4 (`spec-lint` checks this)
 
 ---
 
