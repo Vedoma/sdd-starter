@@ -24,7 +24,19 @@ jobs:
           node-version: 20
       - name: Run spec-lint
         env:
-          # The PR body is passed via env (never inline) so the Spec Reference
-          # check can run without shell interpolation.
+          # Event data reaches the script via env, never inline ${{ }} in the shell, so a
+          # crafted PR body or branch name cannot inject into it.
           PR_BODY: ${{ github.event.pull_request.body }}
-        run: node scripts/spec-lint.mjs
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if [ -n "$BASE_REF" ]; then
+            # Pull request: pass the paths it changes so the diff-aware checks run.
+            # --no-renames lists a moved file under both its old and its new path.
+            CHANGED_FILES="$(git diff --name-only --no-renames "origin/$BASE_REF...HEAD")"
+            export CHANGED_FILES
+          else
+            # Push: there is no pull request, but Actions still sets PR_BODY (to ""), which
+            # spec-lint would read as a PR whose Spec Reference was left empty.
+            unset PR_BODY
+          fi
+          node scripts/spec-lint.mjs

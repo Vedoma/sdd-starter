@@ -34,7 +34,7 @@ for several clauses it did not:
 | --- | --- | --- | --- |
 | C1 | **The specification is the single source of truth.** No code is written without a corresponding spec entry; no spec entry is left silently un-implemented or un-rejected. | `partial` | `spec-lint`: the documents `sdd.config.yml` resolves to must exist, and each backlog task and PR must carry a *non-empty* Spec Reference. It checks presence only — the reference is **not** resolved against a real spec section, so a typo or a stale `§N` after renumbering passes |
 | C2 | **Spec overreach is a defect.** Implementing more than the spec asks is treated exactly like a bug. | `review` | PR review + the Spec Deviations table in the PR template (undocumented deviation blocks merge). `spec-lint` warns on hardcoded hex colors in `src/` as one detectable symptom; the general case is a judgement call |
-| C3 | **Accepted specs are never edited silently.** Changes go through the amendment process. | `unenforced` | The amendment process in [`SPEC_VERSION.md`](./SPEC_VERSION.md) is fully specified and **nothing checks it**. An accepted spec can currently be edited with no changelog row and no `<!-- AMENDED -->` marker. Review is the only gate |
+| C3 | **Accepted specs are never edited silently.** Changes go through the amendment process. | `partial` | `spec-lint` checks **mode consistency**: `sdd.config.yml` must declare `process.mode`; under `greenfield` no `docs/changes/CHANGE-*` directory may exist; under `sustain` `docs/spec/technical-spec.md` must be `Accepted`, and a PR that edits `docs/spec/**` must also touch a change directory. **The amendment bookkeeping in [`SPEC_VERSION.md`](./SPEC_VERSION.md) is unchecked**: nothing verifies that a delta was folded in, that a changelog row or `<!-- AMENDED -->` marker was added, or that a delivered change was archived — and under `greenfield` an accepted spec can still be edited with none of them. Review carries that half |
 | C4 | **ADRs are immutable once accepted.** Supersede with a new ADR; never edit or delete a settled one. | `partial` | `spec-lint` checks only that every ADR file has a row in `docs/adr/README.md`. **Immutability itself is unchecked**: editing or deleting a settled ADR passes. The `adr-status` workflow manages status transitions, but does not defend the rest of the file |
 | C5 | **Tests are derived from acceptance criteria,** not from the implementation. | `partial` | `spec-lint`: every task needs >=2 acceptance-criteria checkboxes. That tests *derive from* those criteria rather than from the code is review-only — the PR checklist is the gate |
 | C6 | **Accessibility is a release gate,** not a nice-to-have, for any user-facing surface. | `unenforced` | No a11y check runs. A runtime axe/pa11y gate needs your built application, so it cannot ship pre-wired — there is a template at [`.github/workflows/a11y.yml.example`](./.github/workflows/a11y.yml.example) to activate. Until then this is review-only |
@@ -87,6 +87,7 @@ our principles change?" unanswerable at a glance.
 > `spec-lint` gate and an honest `partial` Status — the existence-and-trace half is checked,
 > plus task↔scenario citation validity (a backlog task citing an `@AC-` no scenario defines
 > now errors); what stays review-only is that scenarios precede the code, were human-accepted,
-> and that a task cites *all* the scenarios it should. Releasing 1.0 requires the
-> owner sign-off in step 1 above, and should probably wait until the `unenforced` rows have
-> mechanisms behind them.
+> and that a task cites *all* the scenarios it should. Status cells are updated in the same
+> PR as the enforcement they describe; the principles' wording is unchanged. Releasing 1.0
+> requires the owner sign-off in step 1 above, and should probably wait until the
+> `unenforced` rows have mechanisms behind them.
