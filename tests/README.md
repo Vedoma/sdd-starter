@@ -65,3 +65,9 @@ and add it to the required checks (see [`docs/repo-setup.md`](../docs/repo-setup
 
 A test that only exists after the code, asserting what the code already does, is not
 evidence — it is a mirror.
+
+## The scaffold's own tests
+
+`tests/integration/spec-lint-*.test.mjs` test the scaffold's `spec-lint`, not your product.
+They run on stock Node (`node --test`) inside the `spec-lint` workflow, which selects them by
+name so your own tests never run there. Keep them as long as you keep `spec-lint`.
