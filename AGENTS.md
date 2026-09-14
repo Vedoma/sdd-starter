@@ -112,6 +112,11 @@ process mode but not the amendment bookkeeping, and C1's Spec Reference check ve
 presence, not that the reference resolves. Those clauses still bind you; the unchecked parts
 are simply enforced by you and the reviewer rather than by CI.
 
+Once `docs/spec/technical-spec.md` is filled in, `spec-lint` also fails every required
+document, `SPEC_VERSION.md`, and every active change directory that still carries a scaffold
+placeholder (`[Product Name]`, `[Name]`, `[Task Title]`, a `YYYY-MM-DD` date, ...). Replace
+them when you adopt a document; never leave them for later.
+
 ## Non-negotiables (see constitution.md for the full list + enforcement)
 
 - The specification is the single source of truth; no code without a spec entry.

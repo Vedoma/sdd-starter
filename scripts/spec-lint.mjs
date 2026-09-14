@@ -95,16 +95,17 @@ function requiredDocs() {
   }
   return [...req]
 }
-if (!SCAFFOLD)
-  for (const doc of requiredDocs()) {
-    if (!existsSync(doc)) err('C1', `required document missing (per sdd.config.yml): ${doc}`)
-  }
+const REQUIRED_DOCS = SCAFFOLD ? [] : requiredDocs()
+for (const doc of REQUIRED_DOCS) {
+  if (!existsSync(doc)) err('C1', `required document missing (per sdd.config.yml): ${doc}`)
+}
 
 // ---- 2. Backlog tasks: Spec Reference + >=2 acceptance criteria (C1, C5) ----------
 function lintTaskFile(path) {
   const txt = read(path)
   if (!txt) return
-  // Skip an unedited scaffold template - checks activate once it is filled in.
+  // Skip an unedited scaffold template - checks activate once it is filled in. In a real
+  // project the file does not pass silently: section 9 fails it for those placeholders.
   if (txt.includes('[Product Name]') || txt.includes('[Task Title]')) return
   // Split into TASK blocks by the "### TASK-" heading.
   const blocks = txt.split(/^### /m).filter((b) => /^TASK-/.test(b))
@@ -387,10 +388,66 @@ function lintProcessMode() {
 }
 if (!SCAFFOLD) lintProcessMode()
 
+// ---- 9. Adoption: no unfilled scaffold placeholders in governance documents (C1) ----
+// A governance document still carrying template markers - a spec owned by "[Name]", a version
+// log dated "YYYY-MM-DD" - was never adopted. Scans the documents sdd.config.yml requires,
+// SPEC_VERSION.md, and active change directories for the scaffold's own markers. Precision
+// over recall: HTML comments and fenced/inline code are blanked first (keeping line numbers),
+// a bracket marker followed by ( or [ is a link, and the date marker counts only as a table
+// cell or after a **Label:**, so prose such as "dates are YYYY-MM-DD" passes.
+const PLACEHOLDERS = ['[Product Name]', '[Task Title]', '[Title]', '[Name]', '[name]', '[Date]', '[x.x]']
+const PLACEHOLDER_RES = [
+  ...PLACEHOLDERS.map((p) => ({
+    label: p,
+    re: new RegExp(`${p.replace(/[.[\]]/g, '\\$&')}(?![(\\[])`, 'g'),
+  })),
+  { label: 'YYYY-MM-DD', re: /(?<=\|[ \t]*)YYYY-MM-DD(?=[ \t]*\|)|(?<=\*\*[^*\n]+\*\*[ \t]*)YYYY-MM-DD/g },
+]
+
+// The document with comments and code replaced by spaces, so line numbers still hold.
+function proseOnly(md) {
+  const blank = (m) => m.replace(/[^\n]/g, ' ')
+  return md
+    .replace(/\r\n/g, '\n')
+    .replace(/^(```|~~~)[^\n]*\n[\s\S]*?^\1[^\n]*$/gm, blank)
+    .replace(/<!--[\s\S]*?-->/g, blank)
+    .replace(/`[^`\n]*`/g, blank)
+}
+
+function lintPlaceholders() {
+  const docs = new Set([...REQUIRED_DOCS, 'SPEC_VERSION.md'])
+  for (const c of changeDirs().filter((c) => !c.archived))
+    for (const f of readdirSync(c.path)) if (f.endsWith('.md')) docs.add(`${c.path}/${f}`)
+  for (const path of [...docs].filter((p) => !/template/i.test(p))) {
+    const txt = read(path)
+    if (!txt) continue
+    const prose = proseOnly(txt)
+    const found = new Map() // label -> { first: index, lines: Set }
+    let total = 0
+    for (const { label, re } of PLACEHOLDER_RES)
+      for (const m of prose.matchAll(re)) {
+        const hit = found.get(label) || { first: m.index, lines: new Set() }
+        hit.lines.add(prose.slice(0, m.index).split('\n').length)
+        found.set(label, hit)
+        total++
+      }
+    if (!total) continue
+    const list = [...found]
+      .sort((a, b) => a[1].first - b[1].first)
+      .map(([label, { lines }]) => `"${label}" (line${lines.size > 1 ? 's' : ''} ${[...lines].join(', ')})`)
+      .join(', ')
+    err(
+      'C1',
+      `${path}: unfilled scaffold placeholder${total > 1 ? 's' : ''} ${list} - fill them in; a governance document still carrying template markers was never adopted`
+    )
+  }
+}
+if (!SCAFFOLD) lintPlaceholders()
+
 // ---- report ----------------------------------------------------------------------
 if (SCAFFOLD)
   console.log(
-    'note    scaffold mode: docs/spec/technical-spec.md is still the template, so project-level checks (mandatory docs, process mode, PR Spec Reference) are skipped until it is filled in.'
+    'note    scaffold mode: docs/spec/technical-spec.md is still the template, so project-level checks (mandatory docs, process mode, placeholders, PR Spec Reference) are skipped until it is filled in.'
   )
 for (const w of warnings) console.log(`warning ${w}`)
 for (const e of errors) console.log(`error   ${e}`)
