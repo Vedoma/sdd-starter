@@ -506,6 +506,50 @@ function lintVersionRecords() {
 }
 if (!SCAFFOLD) lintVersionRecords()
 
+// ---- 11. Change registry: CHANGE-NNNN naming + a matching row per change (C3, C8) ----
+// Mirrors the ADR registry (section 3). A change is docs/changes/CHANGE-NNNN/ - the next free
+// four-digit number, never an id borrowed from an issue tracker - and has a row in
+// docs/changes/README.md whose Status matches its proposal.md. A row whose directory is gone
+// means a change was deleted rather than archived (C8). Structural, so it runs in scaffold
+// mode too.
+function lintChangeRegistry() {
+  const changes = changeDirs()
+  const rows = tableRows(read('docs/changes/README.md') || '', ['id', 'status'])
+  for (const c of changes) {
+    if (!/^CHANGE-\d{4}$/.test(c.name)) {
+      err(
+        'C3',
+        `${c.path} is not named CHANGE-NNNN - a change takes the next free four-digit number (CHANGE-0001, CHANGE-0002, ...), never an issue or pull-request number; see docs/changes/README.md`
+      )
+      continue
+    }
+    const row = rows.find((r) => new RegExp(`\\b${c.name}\\b`).test(r.id))
+    if (!row) {
+      err('C3', `docs/changes/README.md is missing a registry row for ${c.name} (${c.path})`)
+      continue
+    }
+    const status = docStatus(read(`${c.path}/proposal.md`))
+    if (!status) {
+      err('C3', `${c.path}/proposal.md has no **Status:** - the registry check reads it from there`)
+      continue
+    }
+    if (cellText(row.status).toLowerCase() !== status.toLowerCase())
+      err(
+        'C3',
+        `docs/changes/README.md lists ${c.name} as "${cellText(row.status)}", but ${c.path}/proposal.md says "${status}" - update the registry row`
+      )
+  }
+  for (const r of rows) {
+    const id = (r.id.match(/CHANGE-\d{4}/) || [])[0]
+    if (id && id !== 'CHANGE-0000' && !changes.some((c) => c.name === id || c.name.startsWith(`${id}-`)))
+      err(
+        'C8',
+        `docs/changes/README.md lists ${id}, but neither docs/changes/${id} nor docs/changes/archive/${id} exists - changes are archived, never deleted`
+      )
+  }
+}
+lintChangeRegistry()
+
 // ---- report ----------------------------------------------------------------------
 if (SCAFFOLD)
   console.log(

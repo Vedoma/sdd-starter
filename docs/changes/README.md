@@ -42,3 +42,24 @@ You do not have to start greenfield. For an existing codebase, write a minimal
 `docs/spec/technical-spec.md` describing what is *already* true, accept it, set
 `process.mode: sustain`, then drive all further work through `docs/changes/`. This is the
 "brownfield first" path OpenSpec popularized, here in plain Markdown with no CLI dependency.
+
+## Numbering
+
+A change lives in `docs/changes/CHANGE-NNNN/`, where `NNNN` is the **next free sequential
+number** across active and archived changes, zero-padded to four digits: `CHANGE-0001`,
+`CHANGE-0002`, ... Do not borrow an id from an issue tracker. A tracker's ids belong to the
+tracker - GitHub, for one, numbers issues and pull requests from a single sequence - so they
+are neither stable nor collision-free here, and a first change called `CHANGE-0017` implies
+sixteen predecessors that never existed.
+
+## Change Registry
+
+Every change has a row here, active or archived; never remove one. **Status** mirrors the
+`**Status:**` line of the change's `proposal.md`, and **Delivered In** names the spec version
+(`SPEC_VERSION.md`) the change folded into. `spec-lint` fails a change directory not named
+`CHANGE-NNNN`, a change with no row, a row whose Status disagrees with the proposal, and a row
+whose directory is gone.
+
+| ID | Title | Status | Delivered In |
+| --- | --- | --- | --- |
+| _(add a row per change, ordered by number - never remove rows)_ | | | |
