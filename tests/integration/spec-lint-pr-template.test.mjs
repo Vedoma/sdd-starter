@@ -1,21 +1,15 @@
 // Tests for spec-lint's PR-template check (scripts/spec-lint.mjs, section 13) and the
 // automated-PR policy it shares with the Spec Reference check (section 4).
 //
-// These test the scaffold's own tooling, not your project. Each case builds a minimal
-// filled-in project in a temp directory, copies in this repo's spec-lint and PR template, and
-// runs spec-lint the way CI does, with a synthetic PR_BODY. The cases are the acceptance
-// criteria of the change that added the check. Stock Node only: `node --test`.
+// These test the scaffold's own tooling, not your project: each case runs spec-lint on a
+// minimal filled-in project (see spec-lint-fixture.mjs) with a synthetic PR_BODY. The cases are
+// the acceptance criteria of the change that added the check. Stock Node only: `node --test`.
 
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs'
-import { spawnSync } from 'node:child_process'
-import { tmpdir } from 'node:os'
-import { join, dirname } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { lint, repoFile, errorLines } from './spec-lint-fixture.mjs'
 
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
-const TEMPLATE = readFileSync(join(ROOT, '.github/PULL_REQUEST_TEMPLATE.md'), 'utf8')
+const TEMPLATE = repoFile('.github/PULL_REQUEST_TEMPLATE.md')
 
 // A body that fills the real template: placeholders replaced, the deviations example row
 // deleted, and every checkbox left unticked (ticks are not required).
@@ -26,37 +20,6 @@ const FILLED = TEMPLATE.replace('§[section(s) from technical-spec.md — requir
   .replaceAll('[AC from TASK-XXX]', 'The thing works')
   .replace(/^\| \[What differs from spec\].*\n/m, '')
   .replace('[your test command]', 'npm test')
-
-function lint({ body, env = {}, files = {}, scaffold = false } = {}) {
-  const dir = mkdtempSync(join(tmpdir(), 'spec-lint-pr-'))
-  const put = (p, content) => {
-    mkdirSync(dirname(join(dir, p)), { recursive: true })
-    writeFileSync(join(dir, p), content)
-  }
-  try {
-    put('scripts/spec-lint.mjs', readFileSync(join(ROOT, 'scripts/spec-lint.mjs')))
-    put('.github/PULL_REQUEST_TEMPLATE.md', TEMPLATE)
-    put('sdd.config.yml', 'process:\n  mode: greenfield\n')
-    put('docs/product/brief.md', '# Product Brief: Acme\n')
-    put('docs/plan/backlog.md', '# Implementation Backlog: Acme\n')
-    put(
-      'docs/spec/technical-spec.md',
-      scaffold ? '# Technical Specification: [Product Name]\n' : '# Technical Specification: Acme\n\n## 1. Overview\n'
-    )
-    for (const [p, content] of Object.entries(files))
-      content == null ? rmSync(join(dir, p), { force: true }) : put(p, content)
-    const r = spawnSync(process.execPath, ['scripts/spec-lint.mjs'], {
-      cwd: dir,
-      encoding: 'utf8',
-      env: { PATH: process.env.PATH, ...(body === undefined ? {} : { PR_BODY: body }), ...env },
-    })
-    return { code: r.status, out: r.stdout + r.stderr }
-  } finally {
-    rmSync(dir, { recursive: true, force: true })
-  }
-}
-
-const errorLines = (out) => out.split('\n').filter((l) => l.startsWith('error'))
 
 // --- the acceptance criteria -------------------------------------------------------
 
@@ -100,7 +63,10 @@ test('PR_BODY unset (a push, a local run) skips the check', () => {
 })
 
 test('a pristine scaffold skips the check', () => {
-  const r = lint({ body: 'nothing like the template', scaffold: true })
+  const r = lint({
+    body: 'nothing like the template',
+    files: { 'docs/spec/technical-spec.md': repoFile('docs/spec/technical-spec.md') },
+  })
   assert.equal(r.code, 0, r.out)
 })
 

@@ -68,6 +68,12 @@ Guidance for the next entry:
   Bot-authored PRs and a body with a reasoned `spec-lint: skip-pr-template` line skip the
   PR-body checks, with a note. The checks are covered by `node --test` fixtures in
   `tests/integration/`, which the `spec-lint` workflow runs.
+- `spec-lint` pins the canonical section headings of the scaffolded documents (brief, PRD,
+  technical spec, API contracts, data model, design, backlog, milestones). A filled-in
+  required document that renames, re-cases, demotes or drops one fails, naming the heading
+  it found instead; sections may be added and renumbered. The list lives in
+  `scripts/spec-lint.mjs`, and while the repo is a pristine scaffold spec-lint fails any
+  template whose headings disagree with it, so the list cannot drift from the templates.
 
 ### Changed
 
