@@ -141,9 +141,10 @@ Increment task numbers sequentially across all milestones.
 TEMPLATE BLOCK - copy it for each real task, then DELETE this one.
 
 Deleting it matters more than it looks: spec-lint skips the task checks for this WHOLE
-FILE while the "[Task Title]" placeholder appears anywhere in it, and it does so
-silently. Leave this block in place and your real tasks are not checked for a Spec
-Reference or for acceptance criteria, while spec-lint still reports "passed".
+FILE while the "[Task Title]" placeholder appears anywhere in it. Once the technical spec
+is filled in, spec-lint fails this file for its unfilled placeholders rather than passing
+it - but your real tasks are still not checked for a Spec Reference or for acceptance
+criteria until this block is gone.
 -->
 
 

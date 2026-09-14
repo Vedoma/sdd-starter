@@ -97,5 +97,7 @@ acceptance criterion — and confirm the merge button is blocked, not merely ann
 you have not watched fail is a gate you have not got.
 
 One trap while you do this: spec-lint skips the task checks for the whole of
-`docs/plan/backlog.md` if the string `[Task Title]` appears anywhere in it, and reports
-"passed" either way. Delete the shipped template block before you conclude the gate works.
+`docs/plan/backlog.md` if the string `[Task Title]` appears anywhere in it. In a filled-in
+project the run still fails - on the leftover placeholder, not on your one-criterion task -
+so a red check there does not prove the task gate works. Delete the shipped template block
+before you conclude it does.

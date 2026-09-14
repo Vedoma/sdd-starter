@@ -36,6 +36,11 @@ Guidance for the next entry:
   row). `adr-status` now updates the registry row too, then dispatches `spec-lint` on the PR
   branch, because its workflow-token commit does not trigger `pull_request`. Constitution
   C4 records the new coverage and stays `partial`.
+- `spec-lint` fails a filled-in project whose required documents, `SPEC_VERSION.md` or active
+  change directories still carry scaffold placeholders (`[Product Name]`, `[Name]`,
+  `[Task Title]`, `[Title]`, `[Date]`, `[x.x]`, a `YYYY-MM-DD` date). HTML comments, code and
+  links are ignored, so prose does not trip it. A leftover backlog template block now fails
+  instead of silently switching the task checks off.
 
 ### Fixed
 
