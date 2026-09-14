@@ -444,6 +444,68 @@ function lintPlaceholders() {
 }
 if (!SCAFFOLD) lintPlaceholders()
 
+// ---- 10. Version records: Revision History and SPEC_VERSION.md agree (C3) ----------
+// Two records, two jobs (SPEC_VERSION.md, "Two version records"): the spec's Revision History
+// logs every substantive edit and may run ahead while the spec is Draft; SPEC_VERSION.md holds
+// the accepted version and moves only on acceptance and amendments. In sustain they move
+// together, so a mismatch is an error. In greenfield it is a warning, and only once the spec
+// says Accepted - a Draft running ahead is the rule working, not drift.
+function compareVersions(a, b) {
+  const x = a.split('.').map(Number)
+  const y = b.split('.').map(Number)
+  for (let i = 0; i < Math.max(x.length, y.length); i++) {
+    const d = (x[i] || 0) - (y[i] || 0)
+    if (d) return d
+  }
+  return 0
+}
+const VERSION = /^\d+(\.\d+)*$/
+const cellText = (s) => (s || '').replace(/[*`]/g, '').trim()
+
+// The lines under the first heading matching `re`, up to the next heading.
+function sectionBody(md, re) {
+  const lines = md.replace(/\r\n/g, '\n').split('\n')
+  const start = lines.findIndex((l) => /^#{1,6}\s/.test(l) && re.test(l))
+  if (start === -1) return ''
+  const end = lines.findIndex((l, i) => i > start && /^#{1,6}\s/.test(l))
+  return lines.slice(start + 1, end === -1 ? undefined : end).join('\n')
+}
+
+function lintVersionRecords() {
+  const spec = read('docs/spec/technical-spec.md')
+  const log = read('SPEC_VERSION.md')
+  if (!spec || !log) return
+  const sustain = cfgValue(read('sdd.config.yml') || '', 'process', 'mode') === 'sustain'
+  if (!sustain && !/^accepted$/i.test(docStatus(spec) || '')) return
+  const newest = tableRows(sectionBody(spec, /revision history/i), ['version'])
+    .map((r) => cellText(r.version))
+    .filter((v) => VERSION.test(v))
+    .sort(compareVersions)
+    .pop()
+  const row = tableRows(log, ['field', 'value']).find((r) => /^spec version$/i.test(cellText(r.field)))
+  const current = row ? cellText(row.value) : ''
+  if (!newest || !VERSION.test(current)) {
+    if (sustain)
+      err(
+        'C3',
+        !newest
+          ? 'docs/spec/technical-spec.md has no Revision History version - in sustain mode its newest row must match SPEC_VERSION.md Current Version'
+          : `SPEC_VERSION.md has no Current Version "Spec Version" row - in sustain mode it must match the spec's Revision History`
+      )
+    return
+  }
+  if (compareVersions(newest, current) !== 0)
+    (sustain ? err : warn)(
+      'C3',
+      `docs/spec/technical-spec.md Revision History is at ${newest}, but SPEC_VERSION.md Current Version is ${current} - ${
+        sustain
+          ? 'in sustain mode every amendment bumps both in the same PR'
+          : 'the spec is Accepted, so acceptance should have set both to the accepted version'
+      } (see SPEC_VERSION.md, "Two version records")`
+    )
+}
+if (!SCAFFOLD) lintVersionRecords()
+
 // ---- report ----------------------------------------------------------------------
 if (SCAFFOLD)
   console.log(

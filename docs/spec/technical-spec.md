@@ -12,7 +12,7 @@ Rules:
 - Never silently edit accepted sections — use the amendment process in SPEC_VERSION.md
 -->
 
-**Version:** 1.0 | **Status:** Draft | **Last Updated:** YYYY-MM-DD  
+**Version:** 0.1 | **Status:** Draft | **Last Updated:** YYYY-MM-DD  
 **PRD Reference:** [docs/product/prd.md](../product/prd.md)  
 **Spec Owner:** [Name]
 
@@ -214,9 +214,17 @@ Resolution either updates the spec or produces an ADR.
 
 ## 10. Revision History
 
+<!--
+This document's own edit log: add a row per substantive edit, including while the spec is
+Draft (0.1 -> 0.2 -> ...), and keep the header's **Version:** equal to the newest row.
+SPEC_VERSION.md is a different record - the accepted version - and moves only on acceptance
+and amendments. Under process.mode: sustain, spec-lint fails when the two disagree.
+See SPEC_VERSION.md, "Two version records".
+-->
+
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
-| 1.0 | YYYY-MM-DD | [Name] | Initial draft |
+| 0.1 | YYYY-MM-DD | [Name] | Initial draft |
 
 ---
 
