@@ -26,7 +26,19 @@ principle - the active `docs/plan/backlog.md` holds only open work.
 
 ## Relationship to greenfield
 
+`sdd.config.yml → process.mode` declares which flow the project is in, and `spec-lint`
+holds the project to exactly one:
+
+- **`greenfield`** — the phases are bootstrapping the spec; `docs/spec/**` is edited
+  directly. A `docs/changes/CHANGE-*` directory is an error.
+- **`sustain`** — this directory's flow. `docs/spec/technical-spec.md` must declare
+  `**Status:** Accepted`, and a pull request that edits `docs/spec/**` must also touch the
+  `CHANGE-NNNN/` directory it delivers.
+
+Switch `greenfield` → `sustain` deliberately, in its own pull request, once the spec is
+accepted. There is no way back: archived changes under `greenfield` are an error too.
+
 You do not have to start greenfield. For an existing codebase, write a minimal
-`docs/spec/technical-spec.md` describing what is *already* true, then drive all further
-work through `docs/changes/`. This is the "brownfield first" path OpenSpec popularized,
-here in plain Markdown with no CLI dependency.
+`docs/spec/technical-spec.md` describing what is *already* true, accept it, set
+`process.mode: sustain`, then drive all further work through `docs/changes/`. This is the
+"brownfield first" path OpenSpec popularized, here in plain Markdown with no CLI dependency.

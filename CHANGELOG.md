@@ -22,6 +22,21 @@ Guidance for the next entry:
   fresh [Unreleased] block above it.
 -->
 
+### Added
+
+- `sdd.config.yml` declares `process.mode` (`greenfield` | `sustain`), and `spec-lint`
+  holds the project to it: `greenfield` fails on any `docs/changes/CHANGE-*` directory;
+  `sustain` requires an `Accepted` technical spec and fails a PR that edits `docs/spec/**`
+  without touching a change directory. Constitution C3 moves from `unenforced` to
+  `partial`.
+- Diff-aware `spec-lint` checks: on a pull request the workflow passes the changed paths as
+  `CHANGED_FILES`; local runs leave it unset and those checks are skipped.
+
+### Fixed
+
+- The `spec-lint` workflow no longer passes an empty `PR_BODY` on pushes to `main`, which a
+  filled-in project would read as a PR with no Spec Reference.
+
 ## [0.1.1] - 2026-08-07
 
 ### Fixed

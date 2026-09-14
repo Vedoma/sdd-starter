@@ -10,6 +10,9 @@
 change touches UI.
 
 **Rules.**
+- Read `sdd.config.yml → process.mode` first. Changes exist only in `sustain`; if the
+  project is still `greenfield`, stop and ask whether to switch - `spec-lint` fails a
+  change directory under `greenfield`.
 - Do not edit the living spec directly. The delta folds in only when the change is
   delivered and archived (`docs/changes/archive/`), which also bumps `SPEC_VERSION.md`.
 - Keep the delta minimal and reversible. Present as a proposal; stop for review.
