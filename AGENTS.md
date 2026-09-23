@@ -46,6 +46,11 @@ Commands are defined in [`.claude/commands/`](./.claude/commands/) and back onto
 tool-agnostic prompt bodies in [`prompts/`](./prompts/); a non-Claude agent can read the
 `prompts/` file directly.
 
+**Review is not a phase - it applies to every PR.** When you review a pull request or a
+diff you did not write, follow [`prompts/review.md`](./prompts/review.md): verify each
+finding before you report it, separate what blocks from what does not, and say what you
+did not check.
+
 Which documents a given project is required to have is declared in
 [`sdd.config.yml`](./sdd.config.yml) — read it rather than assuming a document is
 mandatory or optional.
