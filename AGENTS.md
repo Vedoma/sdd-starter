@@ -115,9 +115,12 @@ presence, not that the reference resolves. Those clauses still bind you; the unc
 are simply enforced by you and the reviewer rather than by CI.
 
 Once `docs/spec/technical-spec.md` is filled in, `spec-lint` also fails every required
-document, `SPEC_VERSION.md`, and every active change directory that still carries a scaffold
-placeholder (`[Product Name]`, `[Name]`, `[Task Title]`, a `YYYY-MM-DD` date, ...). Replace
-them when you adopt a document; never leave them for later.
+document, `SPEC_VERSION.md`, and every active change directory that still carries one of the
+scaffold's own markers: `[Product Name]`, `[Task Title]`, `[Title]`, `[Name]`, `[Date]`,
+`[x.x]`, and `[name]` or a `YYYY-MM-DD` date as a table cell or after a `**Label:**`. That is a
+fixed list, not every bracketed hint the templates carry — `[Primary Persona Name]`,
+`[Requirement statement]` and the rest pass the check, so replacing them is on you and the
+reviewer. Fill every template hint when you adopt a document; never leave them for later.
 
 ## Non-negotiables (see constitution.md for the full list + enforcement)
 

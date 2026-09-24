@@ -35,9 +35,12 @@ Guidance for the next entry:
   re-run; see `docs/repo-setup.md` §6). Constitution C4 records the new coverage and stays
   `partial`.
 - `spec-lint` fails a filled-in project whose required documents, `SPEC_VERSION.md` or active
-  change directories still carry scaffold placeholders (`[Product Name]`, `[Name]`,
-  `[Task Title]`, `[Title]`, `[Date]`, `[x.x]`, a `YYYY-MM-DD` date). HTML comments, code and
-  links are ignored, so prose does not trip it. A leftover backlog template block now fails
+  change directories still carry the scaffold's own placeholder markers (`[Product Name]`,
+  `[Name]`, `[Task Title]`, `[Title]`, `[Date]`, `[x.x]`; `[name]` or a `YYYY-MM-DD` date as a
+  table cell or after a `**Label:**`). It is a fixed list, not every template hint. HTML
+  comments, fenced and inline code, and links (including reference-style ones) are ignored,
+  so prose does not trip it; fences are read as GitHub renders them. Constitution C1 records
+  it. A leftover backlog template block now fails
   instead of silently switching the task checks off.
 
 ### Changed

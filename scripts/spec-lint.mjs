@@ -407,41 +407,73 @@ if (!SCAFFOLD) lintProcessMode()
 // ---- 9. Adoption: no unfilled scaffold placeholders in governance documents (C1) ----
 // A governance document still carrying template markers - a spec owned by "[Name]", a version
 // log dated "YYYY-MM-DD" - was never adopted. Scans the documents sdd.config.yml requires,
-// SPEC_VERSION.md, and active change directories for the scaffold's own markers. Precision
-// over recall: HTML comments and fenced/inline code are blanked first (keeping line numbers),
-// a bracket marker followed by ( or [ is a link, and the date marker counts only as a table
-// cell or after a **Label:**, so prose such as "dates are YYYY-MM-DD" passes.
-const PLACEHOLDERS = ['[Product Name]', '[Task Title]', '[Title]', '[Name]', '[name]', '[Date]', '[x.x]']
+// SPEC_VERSION.md, and active change directories for the scaffold's own markers - a fixed
+// list, not every bracketed hint a template carries. Precision over recall: HTML comments,
+// fenced/inline code and link reference definitions are blanked first (keeping line numbers);
+// a bracket marker followed by ( or [, or defined as a link reference, is a link; and the
+// date and `[name]` markers count only as a table cell or after a **Label:**, so prose such as
+// "dates are YYYY-MM-DD" passes.
+const PLACEHOLDERS = ['[Product Name]', '[Task Title]', '[Title]', '[Name]', '[Date]', '[x.x]']
+const AFTER_LABEL = String.raw`(?<=\*\*[^*\n]+(?::\*\*|\*\*:)[ \t]*)`
 const PLACEHOLDER_RES = [
   ...PLACEHOLDERS.map((p) => ({
     label: p,
     re: new RegExp(`${p.replace(/[.[\]]/g, '\\$&')}(?![(\\[])`, 'g'),
   })),
-  { label: 'YYYY-MM-DD', re: /(?<=\|[ \t]*)YYYY-MM-DD(?=[ \t]*\|)|(?<=\*\*[^*\n]+\*\*[ \t]*)YYYY-MM-DD/g },
+  { label: '[name]', re: new RegExp(`${AFTER_LABEL}\\[name\\]`, 'g') },
+  { label: 'YYYY-MM-DD', re: new RegExp(`(?<=\\|[ \\t]*)YYYY-MM-DD(?=[ \\t]*\\|)|${AFTER_LABEL}YYYY-MM-DD`, 'g') },
 ]
 
-// The document with comments and code replaced by spaces, so line numbers still hold.
-function proseOnly(md) {
-  const blank = (m) => m.replace(/[^\n]/g, ' ')
-  return md
-    .replace(/\r\n/g, '\n')
-    .replace(/^(```|~~~)[^\n]*\n[\s\S]*?^\1[^\n]*$/gm, blank)
-    .replace(/<!--[\s\S]*?-->/g, blank)
-    .replace(/`[^`\n]*`/g, blank)
+// The document with HTML comments and fenced code blocks replaced by spaces, so line numbers
+// still hold. Fences follow CommonMark closely enough for prose checks: a run of 3+ backticks
+// or tildes opens one (at any indentation, so fences in list items count), only a run of the
+// same character at least as long closes it, and an unclosed fence runs to the end of the
+// document - which is how GitHub renders it.
+function withoutCommentsAndFences(md) {
+  const blank = (s) => s.replace(/[^\n]/g, ' ')
+  let fence = null
+  const lines = md.replace(/\r\n/g, '\n').split('\n').map((line) => {
+    if (fence) {
+      const close = line.match(/^\s*(`{3,}|~{3,})\s*$/)
+      if (close && close[1][0] === fence[0] && close[1].length >= fence.length) fence = null
+      return blank(line)
+    }
+    const open = line.match(/^\s*(`{3,}|~{3,})(.*)$/)
+    if (open && !(open[1][0] === '`' && open[2].includes('`'))) {
+      fence = open[1]
+      return blank(line)
+    }
+    return line
+  })
+  return lines.join('\n').replace(/<!--[\s\S]*?-->/g, blank)
 }
+
+// withoutCommentsAndFences, and inline code and link reference definitions blanked too.
+function proseOnly(md) {
+  const blank = (s) => s.replace(/[^\n]/g, ' ')
+  return withoutCommentsAndFences(md)
+    .replace(/`[^`\n]*`/g, blank)
+    .replace(/^ {0,3}\[[^\]\n]+\]:[ \t]*\S.*$/gm, blank)
+}
+
+// The labels a document defines as link references (`[label]: url`), lower-cased.
+const linkLabels = (md) =>
+  new Set([...withoutCommentsAndFences(md).matchAll(/^ {0,3}\[([^\]\n]+)\]:[ \t]*\S/gm)].map((m) => m[1].toLowerCase()))
 
 function lintPlaceholders() {
   const docs = new Set([...REQUIRED_DOCS, 'SPEC_VERSION.md'])
   for (const c of changeDirs().filter((c) => !c.archived))
     for (const f of readdirSync(c.path)) if (f.endsWith('.md')) docs.add(`${c.path}/${f}`)
-  for (const path of [...docs].filter((p) => !/template/i.test(p))) {
+  for (const path of docs) {
     const txt = read(path)
     if (!txt) continue
     const prose = proseOnly(txt)
+    const links = linkLabels(txt)
     const found = new Map() // label -> { first: index, lines: Set }
     let total = 0
     for (const { label, re } of PLACEHOLDER_RES)
       for (const m of prose.matchAll(re)) {
+        if (label.startsWith('[') && links.has(label.slice(1, -1).toLowerCase())) continue // a shortcut reference link
         const hit = found.get(label) || { first: m.index, lines: new Set() }
         hit.lines.add(prose.slice(0, m.index).split('\n').length)
         found.set(label, hit)
