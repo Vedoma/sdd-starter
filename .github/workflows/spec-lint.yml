@@ -6,6 +6,9 @@ name: spec-lint
 
 on:
   pull_request:
+    # `edited` re-runs the PR-body checks when the description changes, so fixing a body turns
+    # the check green and emptying one turns it red.
+    types: [opened, synchronize, reopened, edited]
   push:
     branches: [main]
   # adr-status.yml dispatches this on a PR branch after committing an /adr transition:
@@ -56,17 +59,18 @@ jobs:
           fi
           jq -r '.body // ""' "$RUNNER_TEMP/pr.json" > "$RUNNER_TEMP/pr-body.md"
           echo "base_ref=$(jq -r .baseRefName "$RUNNER_TEMP/pr.json")" >> "$GITHUB_OUTPUT"
-          echo "author_login=$(jq -r .author.login "$RUNNER_TEMP/pr.json")" >> "$GITHUB_OUTPUT"
-          echo "author_type=$(jq -r 'if .author.is_bot then "Bot" else "User" end' "$RUNNER_TEMP/pr.json")" >> "$GITHUB_OUTPUT"
+          # gh reports an app author as "app/<name>"; the event payload calls it "<name>[bot]".
+          echo "author_login=$(jq -r 'if .author.is_bot then (.author.login | sub("^app/"; "")) + "[bot]" else .author.login end' "$RUNNER_TEMP/pr.json")" >> "$GITHUB_OUTPUT"
       - name: Run spec-lint
         env:
           # Event data reaches the script via env, never inline ${{ }} in the shell, so a
           # crafted PR body or branch name cannot inject into it.
           PR_BODY: ${{ github.event.pull_request.body }}
           BASE_REF: ${{ github.base_ref || steps.dispatched.outputs.base_ref }}
-          # spec-lint exempts bot-authored PRs from the PR-body checks (with a note).
           PR_AUTHOR: ${{ github.event.pull_request.user.login || steps.dispatched.outputs.author_login }}
-          PR_AUTHOR_TYPE: ${{ github.event.pull_request.user.type || steps.dispatched.outputs.author_type }}
+          # Dependency and release bots whose PRs skip the PR-body checks (with a note). Only
+          # these: a coding agent opening PRs as a GitHub App is held to the template like anyone.
+          PR_EXEMPT_BOTS: dependabot[bot] renovate[bot]
         run: |
           if [ -f "$RUNNER_TEMP/pr-body.md" ]; then
             # Dispatched run: the body was fetched above instead of read from the event.
@@ -74,8 +78,9 @@ jobs:
           fi
           if [ -n "$BASE_REF" ]; then
             # Pull request: pass the paths it changes so the diff-aware checks run.
-            # --no-renames lists a moved file under both its old and its new path.
-            CHANGED_FILES="$(git diff --name-only --no-renames "origin/$BASE_REF...HEAD")"
+            # --no-renames lists a moved file under both its old and its new path, and
+            # core.quotePath=false keeps non-ASCII paths as written instead of "\303\251".
+            CHANGED_FILES="$(git -c core.quotePath=false diff --name-only --no-renames "origin/$BASE_REF...HEAD")"
             export CHANGED_FILES
           else
             # Push: there is no pull request, but Actions still sets PR_BODY (to ""), which

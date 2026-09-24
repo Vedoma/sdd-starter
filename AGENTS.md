@@ -77,7 +77,9 @@ questions before drafting.
 Stop and get explicit human approval before:
 
 - Accepting an ADR (a maintainer runs `/adr accept` on the open PR; you never self-accept,
-  and `spec-lint` blocks merging it while it is `proposed`).
+  and `spec-lint` blocks merging it while it is `proposed`). Editing the status to
+  `accepted` yourself passes `spec-lint` — it cannot tell who accepted — and is still a
+  violation.
 - Amending an accepted spec (`/amend` + `SPEC_VERSION.md`).
 - Anything destructive or irreversible (deleting files, force-pushing, rewriting history).
 - Opening or merging a pull request.
@@ -118,15 +120,21 @@ any other reference on presence alone. Those clauses still bind you; the uncheck
 are simply enforced by you and the reviewer rather than by CI.
 
 Once `docs/spec/technical-spec.md` is filled in, `spec-lint` also fails every required
-document, `SPEC_VERSION.md`, and every active change directory that still carries a scaffold
-placeholder (`[Product Name]`, `[Name]`, `[Task Title]`, a `YYYY-MM-DD` date, ...). Replace
-them when you adopt a document; never leave them for later.
+document, `SPEC_VERSION.md`, and every active change directory that still carries one of the
+scaffold's own markers: `[Product Name]`, `[Task Title]`, `[Title]`, `[Name]`, `[Date]`,
+`[x.x]`, and `[name]` or a `YYYY-MM-DD` date as a table cell or after a `**Label:**`. That is a
+fixed list, not every bracketed hint the templates carry — `[Primary Persona Name]`,
+`[Requirement statement]` and the rest pass the check, so replacing them is on you and the
+reviewer. Fill every template hint when you adopt a document; never leave them for later.
 
 When opening a PR non-interactively, read `.github/PULL_REQUEST_TEMPLATE.md` and fill it —
 `gh pr create --body` bypasses GitHub's template injection. `spec-lint` fails a body that
 drops or demotes one of the template's headings or keeps one of its placeholders; it does not
-check that what you wrote is true. The `spec-lint: skip-pr-template - <reason>` opt-out is for
-pure reverts and release automation, never a way around filling the template.
+check that what you wrote is true. The `spec-lint: skip-pr-template - reverts #123` opt-out is
+for pure reverts: its reason must cite the PR or issue, it skips only the template structure
+(the Spec Reference is still required), and it is never a way around filling the template. Bots
+are held to the template too, except the dependency and release bots listed in the workflow's
+`PR_EXEMPT_BOTS`.
 
 The spec keeps two version records with different jobs: its own Revision History (a row per
 substantive edit, free to advance while `Draft`) and `SPEC_VERSION.md` (the accepted version,
