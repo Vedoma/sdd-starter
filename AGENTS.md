@@ -73,7 +73,9 @@ questions before drafting.
 Stop and get explicit human approval before:
 
 - Accepting an ADR (a maintainer runs `/adr accept` on the open PR; you never self-accept,
-  and `spec-lint` blocks merging it while it is `proposed`).
+  and `spec-lint` blocks merging it while it is `proposed`). Editing the status to
+  `accepted` yourself passes `spec-lint` — it cannot tell who accepted — and is still a
+  violation.
 - Amending an accepted spec (`/amend` + `SPEC_VERSION.md`).
 - Anything destructive or irreversible (deleting files, force-pushing, rewriting history).
 - Opening or merging a pull request.
