@@ -144,7 +144,7 @@ function activeChangeDirs() {
 // before merge. Structural, so it runs in scaffold mode too.
 
 // Every row of every Markdown table in `md` whose header has all of `columns`, as an object
-// keyed by lower-cased header text.
+// keyed by lower-cased header text (emphasis and code marks dropped, so **Status** is status).
 function tableRows(md, columns) {
   const rows = []
   let header = null
@@ -155,7 +155,7 @@ function tableRows(md, columns) {
     }
     const cells = line.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map((c) => c.trim())
     if (!header) {
-      header = cells.map((c) => c.toLowerCase())
+      header = cells.map((c) => c.replace(/[*`]/g, '').trim().toLowerCase())
       continue
     }
     if (cells.every((c) => /^:?-+:?$/.test(c))) continue
@@ -509,6 +509,11 @@ function compareVersions(a, b) {
 }
 const VERSION = /^\d+(\.\d+)*$/
 const cellText = (s) => (s || '').replace(/[*`]/g, '').trim()
+// A version cell as a dotted number ("v1.2" -> "1.2"), or null when it is something else.
+const parseVersion = (s) => {
+  const v = cellText(s).replace(/^v(?=\d)/i, '')
+  return VERSION.test(v) ? v : null
+}
 
 // The lines under the first heading matching `re`, up to the next heading.
 function sectionBody(md, re) {
@@ -521,27 +526,34 @@ function sectionBody(md, re) {
 
 function lintVersionRecords() {
   const spec = read('docs/spec/technical-spec.md')
-  const log = read('SPEC_VERSION.md')
-  if (!spec || !log) return
+  if (!spec) return // section 1 reports a missing required spec
   const sustain = cfgValue(read('sdd.config.yml') || '', 'process', 'mode') === 'sustain'
   if (!sustain && !/^accepted$/i.test(docStatus(spec) || '')) return
-  const newest = tableRows(sectionBody(spec, /revision history/i), ['version'])
+  const report = (msg) =>
+    (sustain ? err : warn)(
+      'C3',
+      `${msg} (${sustain ? 'process.mode is sustain' : 'the spec is Accepted'}, so the spec's Revision History and SPEC_VERSION.md must agree; see SPEC_VERSION.md, "Two version records")`
+    )
+  const log = read('SPEC_VERSION.md')
+  if (!log) return report('SPEC_VERSION.md is missing')
+  const history = tableRows(sectionBody(spec, /revision history/i), ['version'])
     .map((r) => cellText(r.version))
-    .filter((v) => VERSION.test(v))
-    .sort(compareVersions)
-    .pop()
+    .filter(Boolean)
+  if (!history.length)
+    return report('docs/spec/technical-spec.md has no Revision History table with a Version column, or no rows in it')
+  const unparsed = history.filter((v) => !parseVersion(v))
+  if (unparsed.length)
+    return report(
+      `docs/spec/technical-spec.md Revision History has ${unparsed.map((v) => `"${v}"`).join(', ')}, which spec-lint cannot compare - write versions as dotted numbers (1.2, or v1.2)`
+    )
+  const newest = history.map(parseVersion).sort(compareVersions).pop()
   const row = tableRows(log, ['field', 'value']).find((r) => /^spec version$/i.test(cellText(r.field)))
-  const current = row ? cellText(row.value) : ''
-  if (!newest || !VERSION.test(current)) {
-    if (sustain)
-      err(
-        'C3',
-        !newest
-          ? 'docs/spec/technical-spec.md has no Revision History version - in sustain mode its newest row must match SPEC_VERSION.md Current Version'
-          : `SPEC_VERSION.md has no Current Version "Spec Version" row - in sustain mode it must match the spec's Revision History`
-      )
-    return
-  }
+  if (!row) return report('SPEC_VERSION.md has no "Spec Version" row in its Current Version table')
+  const current = parseVersion(row.value)
+  if (!current)
+    return report(
+      `SPEC_VERSION.md Spec Version is "${cellText(row.value)}", which spec-lint cannot compare - write it as a dotted number (1.2, or v1.2)`
+    )
   if (compareVersions(newest, current) !== 0)
     (sustain ? err : warn)(
       'C3',

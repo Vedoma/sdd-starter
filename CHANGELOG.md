@@ -45,8 +45,9 @@ Guidance for the next entry:
 - The relationship between the spec's Revision History and `SPEC_VERSION.md` is written down
   (`SPEC_VERSION.md` → "Two version records"): the history may advance while `Draft`;
   `SPEC_VERSION.md` moves only on acceptance and amendments. `spec-lint` fails a `sustain`
-  project whose two records disagree, and warns under `greenfield` once the spec is
-  `Accepted`.
+  project whose two records disagree, whose `SPEC_VERSION.md` is missing, or whose records
+  hold a version it cannot compare (dotted numbers, optionally `v`-prefixed), and warns under
+  `greenfield` once the spec is `Accepted`.
 
 ### Changed
 
