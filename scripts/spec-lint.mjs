@@ -109,37 +109,74 @@ for (const doc of REQUIRED_DOCS) {
 }
 
 // ---- 2. Backlog tasks: Spec Reference + >=2 acceptance criteria (C1, C5) ----------
-// Resolve a filled Spec Reference. A `§N` must be a numbered heading of technical-spec.md - or,
-// when the reference also names a change, a section that change's spec-delta.md touches (a
-// delta may ADD a section the spec does not have yet). A `CHANGE-NNNN` must be a change
-// directory, active or archived. A reference into another document, or naming neither form,
-// cannot be resolved and is accepted on presence alone. Returns { problems, resolvable }.
-function resolveSpecRef(ref) {
+// The Spec Reference value of a task block or PR body: its table cell (| **Spec Reference** | … |),
+// else a `Spec Reference: …` line. HTML comments and fenced code are ignored. '' when absent.
+// Tasks and the PR body read it the same way.
+function specRefValue(text) {
+  const t = withoutCommentsAndFences(text)
+  const m = t.match(/\*\*Spec Reference\*\*\s*\|([^|\n]*)/) || t.match(/Spec Reference\**\s*[:|]\s*(.+)/)
+  return m ? m[1].trim() : ''
+}
+
+// A Spec Reference that is blank, dash-only, or still a template placeholder: "section(s)
+// from …", or a bracket that is neither a link nor wrapping a § reference (`§[x.x]`, `[TBD]`).
+const unfilledRef = (v) =>
+  !v ||
+  /^[-—\s]*$/.test(v) ||
+  /section\(s\) from/i.test(v) ||
+  /\[(?!§)/.test(v.replace(/\[[^\]\n]*\]\([^)\n]*\)/g, ''))
+
+// Resolve a filled Spec Reference. A `CHANGE-NNNN` must be spelled that way and be a change
+// directory, active or archived. A `§N` - or both ends of a range `§N-M` - must be a numbered
+// heading of technical-spec.md or a section that a named change's spec-delta.md touches (a delta
+// may ADD a section the spec does not have yet); a task inside a change counts as naming it
+// (`home`). Each § belongs to the document named last before it: none, technical-spec.md or a
+// file inside a change is checked; any other document (`data-model.md §3`) cannot be resolved
+// and is accepted on presence alone. Returns { problems, resolvable }.
+function resolveSpecRef(ref, home) {
   const problems = []
-  const changes = [...new Set(ref.match(/CHANGE-\d{4}\b/g) || [])]
-  for (const id of changes)
-    if (!existsSync(`docs/changes/${id}`) && !existsSync(`docs/changes/archive/${id}`))
-      problems.push(`names ${id}, but neither docs/changes/${id} nor docs/changes/archive/${id} exists`)
-  const otherDoc = (ref.match(/[\w./-]+\.md\b/g) || []).some((d) => !d.endsWith('technical-spec.md'))
-  const tokens = otherDoc ? [] : [...ref.matchAll(/§\s*([0-9][\w.]*)/g)].map((m) => m[1].replace(/\.+$/, ''))
+  let checked = 0
+  const changes = home ? [home] : []
+  for (const [raw] of ref.matchAll(/\bchange-\d+\b/gi)) {
+    if (!/^CHANGE-\d{4}$/.test(raw)) {
+      problems.push(`names "${raw}" - a change id is CHANGE-NNNN, four digits (docs/changes/README.md, "Numbering")`)
+      continue
+    }
+    checked++
+    if (!existsSync(`docs/changes/${raw}`) && !existsSync(`docs/changes/archive/${raw}`))
+      problems.push(`names ${raw}, but neither docs/changes/${raw} nor docs/changes/archive/${raw} exists`)
+    else if (!changes.includes(raw)) changes.push(raw)
+  }
+  const docs = [...ref.matchAll(/[\w./-]+\.md\b/g)].map((m) => ({ at: m.index, name: m[0] }))
+  const checkable = (at) => {
+    const doc = docs.filter((d) => d.at < at).pop()
+    return !doc || /(^|\/)technical-spec\.md$/.test(doc.name) || /change-\d+/i.test(doc.name)
+  }
+  const tokens = []
+  for (const m of ref.matchAll(/§\s*([0-9][\w.]*)(?:\s*[-–]\s*§?\s*([0-9][\w.]*))?/g))
+    if (checkable(m.index)) for (const t of [m[1], m[2]]) if (t) tokens.push(t.replace(/\.+$/, ''))
   if (tokens.length) {
-    const spec = (read('docs/spec/technical-spec.md') || '').replace(/\r\n/g, '\n')
-    const sections = new Set([...spec.matchAll(/^#{1,6}\s+§?\s*(\d+(?:\.\d+)*)\.?(?=\s|$)/gm)].map((m) => m[1]))
+    const headings = (md) => withoutCommentsAndFences(md || '').split('\n').filter((l) => /^#{1,6}\s/.test(l))
+    const sections = new Set()
+    for (const h of headings(read('docs/spec/technical-spec.md'))) {
+      const m = h.match(/^#{1,6}\s+[*_]*§?\s*(\d+(?:\.\d+)*)\.?[*_]*(?=\s|$)/)
+      if (m) sections.add(m[1])
+    }
     for (const id of changes) {
-      const delta = read(`docs/changes/${id}/spec-delta.md`) ?? read(`docs/changes/archive/${id}/spec-delta.md`) ?? ''
-      for (const line of delta.split('\n'))
-        if (/^#{1,6}\s/.test(line)) for (const m of line.matchAll(/§\s*(\d+(?:\.\d+)*)/g)) sections.add(m[1])
+      const delta = read(`docs/changes/${id}/spec-delta.md`) ?? read(`docs/changes/archive/${id}/spec-delta.md`)
+      for (const h of headings(delta)) for (const m of h.matchAll(/§\s*(\d+(?:\.\d+)*)/g)) sections.add(m[1])
     }
     const where = ['docs/spec/technical-spec.md', ...changes.map((id) => `${id}'s spec-delta.md`)].join(' or ')
     for (const t of tokens) {
+      checked++
       if (!/^\d+(\.\d+)*$/.test(t)) problems.push(`§${t} is not a section number`)
       else if (!sections.has(t)) problems.push(`§${t} is not a section of ${where}`)
     }
   }
-  return { problems, resolvable: changes.length > 0 || tokens.length > 0 }
+  return { problems, resolvable: checked > 0 }
 }
 
-function lintTaskFile(path) {
+function lintTaskFile(path, home) {
   const txt = read(path)
   if (!txt) return
   // Skip an unedited scaffold template - checks activate once it is filled in. In a real
@@ -149,15 +186,12 @@ function lintTaskFile(path) {
   const blocks = txt.split(/^### /m).filter((b) => /^TASK-/.test(b))
   for (const b of blocks) {
     const id = (b.match(/^(TASK-[\w-]+)/) || [])[1] || '(unnamed task)'
-    // The table form captures its own cell only: `(.+)` also took the closing pipe, so a
-    // blank or dash-only cell read as "|" and passed.
-    const specRef = b.match(/\*\*Spec Reference\*\*\s*\|([^|\n]*)/) || b.match(/Spec Reference[:|]\s*(.+)/)
-    const refVal = specRef ? specRef[1].trim() : ''
-    if (!refVal || /^[-—\s]*$/.test(refVal) || /section\(s\) from/i.test(refVal) || refVal.includes('[')) {
+    const refVal = specRefValue(b)
+    if (unfilledRef(refVal)) {
       err('C1', `${path}: ${id} has no filled Spec Reference`)
     } else if (!SCAFFOLD) {
       // Project-level: resolving against a technical-spec.md that is still the template means nothing.
-      const { problems, resolvable } = resolveSpecRef(refVal)
+      const { problems, resolvable } = resolveSpecRef(refVal, home)
       for (const p of problems) err('C1', `${path}: ${id} Spec Reference ${p}`)
       if (!resolvable) presenceOnly.push(`${path} ${id}`)
     }
@@ -166,7 +200,10 @@ function lintTaskFile(path) {
   }
 }
 lintTaskFile('docs/plan/backlog.md')
-for (const dir of activeChangeDirs()) lintTaskFile(`${dir}/tasks.md`)
+for (const dir of activeChangeDirs()) {
+  const id = dir.split('/').pop()
+  lintTaskFile(`${dir}/tasks.md`, /^CHANGE-\d{4}$/.test(id) ? id : undefined)
+}
 
 function activeChangeDirs() {
   const base = 'docs/changes'
@@ -277,10 +314,8 @@ lintAdrRegistry()
 
 // ---- 4. PR carries a filled Spec Reference (C1) -----------------------------------
 if (!SCAFFOLD && process.env.PR_BODY != null) {
-  const body = process.env.PR_BODY
-  const m = body.match(/\*\*Spec Reference\*\*\s*\|([^|\n]*)/)
-  const val = m ? m[1].trim() : ''
-  if (!val || /^[-—\s]*$/.test(val) || /section\(s\) from technical-spec/i.test(val) || val === '§[section(s) from technical-spec.md — required]') {
+  const val = specRefValue(process.env.PR_BODY)
+  if (unfilledRef(val)) {
     err('C1', 'the PR body has no filled Spec Reference (see the PR template)')
   } else {
     const { problems, resolvable } = resolveSpecRef(val)
