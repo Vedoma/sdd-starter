@@ -15,12 +15,13 @@ Add this as a required check on the default branch. The name matches the workflo
 
 | Check | Workflow | Enforces |
 | --- | --- | --- |
-| `spec-lint` | [spec-lint.yml](../.github/workflows/spec-lint.yml) | the checked part of C1 and C5 |
+| `spec-lint` | [spec-lint.yml](../.github/workflows/spec-lint.yml) | the checked parts of C1, C3, C4, C5 and C10 |
 
 That is currently the **only** merge-blocking check in the repository. Read the `Status`
 column in [`constitution.md`](../constitution.md) before assuming a clause is covered:
-C3, C4 and C7 name mechanisms that do not exist yet, so requiring this one check does not
-make the constitution enforced — it makes one clause and a half enforced.
+C6 and C7 name mechanisms that do not exist yet, and every clause `spec-lint` touches is
+only `partial`, so requiring this one check does not make the constitution enforced — it
+makes the checked half of a few clauses enforced.
 
 ## 2. Branch protection / ruleset on the default branch
 
