@@ -344,7 +344,8 @@ if (!SCAFFOLD) lintBehaviourCoverage()
 // accepted spec only through docs/changes/CHANGE-NNNN deltas. Running both at once is how an
 // accepted spec gets edited silently, so each mode rejects the other's artifacts.
 const MODES = ['greenfield', 'sustain']
-const CHANGE_PATH = /^docs\/changes\/(?:archive\/)?CHANGE-(?!0000-template\/)[^/]+\//
+// A path inside an archived change: what a delivering PR adds (section 12).
+const ARCHIVED_CHANGE_PATH = /^docs\/changes\/archive\/CHANGE-\d{4}\//
 
 // Change directories: active (docs/changes/) and delivered (docs/changes/archive/). The
 // shipped template is not a change.
@@ -392,12 +393,14 @@ function lintProcessMode() {
     )
   if (CHANGED) {
     const specEdits = CHANGED.filter((p) => p.startsWith('docs/spec/'))
-    // A deleted path does not count: removing some other change does not deliver one.
-    if (specEdits.length && !CHANGED.some((p) => CHANGE_PATH.test(p) && existsSync(p))) {
+    // In sustain the spec changes only when a change is delivered, and delivering a change
+    // archives it in the same PR (section 12). Touching an active change is not enough, and a
+    // deleted path does not count: removing some other change does not deliver one.
+    if (specEdits.length && !CHANGED.some((p) => ARCHIVED_CHANGE_PATH.test(p) && existsSync(p))) {
       const shown = specEdits.slice(0, 3).join(', ') + (specEdits.length > 3 ? `, +${specEdits.length - 3} more` : '')
       err(
         'C3',
-        `this PR edits the living spec (${shown}) without adding to or changing a docs/changes/CHANGE-NNNN/ directory - in sustain mode docs/spec/** changes only by delivering a change (/change)`
+        `this PR edits the living spec (${shown}) without delivering a change - in sustain mode docs/spec/** changes only in the PR that folds a change's delta in and moves it to docs/changes/archive/ (docs/changes/README.md, "Deliver")`
       )
     }
   }
@@ -633,16 +636,26 @@ lintChangeRegistry()
 // not sit outside archive/; an archived change must have been delivered and be cited by a
 // Changelog row; and a PR that touches an archived change - so editing one counts as delivering
 // it again, which keeps archived records frozen - must also change SPEC_VERSION.md and the
-// living spec. Whether the folded edit matches the delta is review's job. There is no warning
-// for a change left Accepted too long: a proposal's only date is when it was written.
+// living spec. Whether the folded edit matches the delta is review's job. "Delivered" is
+// self-declared, so the one mechanical hint that a change shipped without being delivered - every
+// task box ticked while it is still active - only warns. There is no warning for a change left
+// Accepted too long: a proposal's only date is when it was written.
 function lintChangeLifecycle() {
-  const changelog = tableRows(sectionBody(read('SPEC_VERSION.md') || '', /changelog/i), ['version'])
-  const cited = (id) => changelog.some((r) => new RegExp(`\\b${id}\\b`).test(Object.values(r).join(' | ')))
+  const log = read('SPEC_VERSION.md') || ''
+  const changelog = tableRows(sectionBody(log, /changelog/i), ['version'])
+  const citing = (id) => changelog.filter((r) => new RegExp(`\\b${id}\\b`).test(Object.values(r).join(' | ')))
+  const cited = (id) => citing(id).length > 0
   for (const c of changeDirs()) {
     if (!/^CHANGE-\d{4}$/.test(c.name)) continue // section 11 reports the name
     const status = docStatus(read(`${c.path}/proposal.md`))
     if (!status) continue // section 11 reports the missing Status
     const delivered = /^(delivered|archived)$/i.test(status)
+    const boxes = [...(read(`${c.path}/tasks.md`) || '').matchAll(/^\s*-\s*\[([ xX])\]/gm)].map((m) => m[1] !== ' ')
+    if (!c.archived && !delivered && boxes.length && boxes.every(Boolean))
+      warn(
+        'C3',
+        `${c.path}: every task box in tasks.md is ticked, but the change is still ${status} - if it has shipped, deliver it (fold the delta, bump SPEC_VERSION.md, archive); if not, untick what is not done`
+      )
     if (!c.archived && delivered)
       err(
         'C8',
@@ -657,6 +670,13 @@ function lintChangeLifecycle() {
       )
   }
   if (!CHANGED) return
+  // A change directory the PR touched that is gone from both places was deleted, not archived.
+  const touched = new Set(CHANGED.map((p) => (p.match(/^docs\/changes\/(?:archive\/)?(CHANGE-\d{4})\//) || [])[1]).filter(Boolean))
+  for (const id of touched)
+    if (!existsSync(`docs/changes/${id}`) && !existsSync(`docs/changes/archive/${id}`))
+      err('C8', `this PR deletes ${id} - changes are archived, never deleted; restore it (move it to docs/changes/archive/ if it is done)`)
+  const currentRow = tableRows(log, ['field', 'value']).find((r) => /^spec version$/i.test(cellText(r.field)))
+  const current = currentRow && parseVersion(currentRow.value)
   const archivedHere = new Set(
     CHANGED.map((p) => (p.match(/^docs\/changes\/archive\/(CHANGE-\d{4})\//) || [])[1]).filter(
       (id) => id && existsSync(`docs/changes/archive/${id}`)
@@ -665,7 +685,13 @@ function lintChangeLifecycle() {
   for (const id of archivedHere) {
     if (!CHANGED.includes('SPEC_VERSION.md'))
       err('C3', `this PR archives ${id} without changing SPEC_VERSION.md - delivery adds its Changelog row and version bump in the same PR`)
-    if (!CHANGED.some((p) => /^docs\/(spec|design)\//.test(p)))
+    const rows = citing(id)
+    if (current && rows.length && !rows.some((r) => parseVersion(r.version) === current))
+      err(
+        'C3',
+        `this PR archives ${id}, but the SPEC_VERSION.md Changelog row citing it is at ${rows.map((r) => cellText(r.version)).join(', ')}, not the Current Version ${current} - delivery adds a row at the bumped version`
+      )
+    if (!CHANGED.some((p) => /^docs\/(spec|design)\//.test(p) && existsSync(p)))
       err(
         'C3',
         `this PR archives ${id} without editing the living spec (docs/spec/** or docs/design/**) - delivery folds the delta in, in the same PR`

@@ -55,10 +55,14 @@ Guidance for the next entry:
   a row whose directory is gone, and a malformed or duplicated registry ID.
 - The second half of the change lifecycle is enforced. `spec-lint` fails a `Delivered` or
   `Archived` change outside `docs/changes/archive/`, an archived change that was never
-  delivered or that no `SPEC_VERSION.md` Changelog row cites, and a PR that archives a change
-  without also changing `SPEC_VERSION.md` and the living spec. The proposal's state machine
+  delivered or that no `SPEC_VERSION.md` Changelog row cites, a PR that archives a change
+  without also changing `SPEC_VERSION.md` (the citing row at the Current Version) and the
+  living spec, and a PR that deletes a change. Under `sustain`, delivering means archiving: a PR
+  that edits `docs/spec/**` must archive the change it delivers. A change whose
+  every task box is ticked while it is still active warns. The proposal's state machine
   (`Proposed → Accepted → Delivered → Archived`) is spelled out. Constitution C3 records the
-  mechanics and stays `partial`: whether a folded spec edit matches its delta is review-only.
+  mechanics and stays `partial`: whether a folded spec edit matches its delta, and whether a
+  change that shipped was ever delivered, are review-only.
 
 ### Changed
 
@@ -70,7 +74,7 @@ Guidance for the next entry:
 - **Breaking:** `sdd.config.yml` must declare `process.mode` (`greenfield` | `sustain`),
   and `spec-lint` holds the project to it: `greenfield` fails on any `docs/changes/CHANGE-*`
   directory; `sustain` requires an `Accepted` technical spec and fails a PR that edits
-  `docs/spec/**` without also changing a change directory. Constitution C3 moves from
+  `docs/spec/**` without delivering a change. Constitution C3 moves from
   `unenforced` to `partial`. **Migrating:** add `mode:` under `process:` in
   `sdd.config.yml` — `greenfield` while you are still writing the spec, `sustain` if it is
   accepted and you already work through `docs/changes/`. Without it `spec-lint` fails.
