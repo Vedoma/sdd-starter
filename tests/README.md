@@ -70,4 +70,6 @@ evidence — it is a mirror.
 
 `tests/integration/spec-lint-*.test.mjs` test the scaffold's `spec-lint`, not your product.
 They run on stock Node (`node --test`) inside the `spec-lint` workflow, which selects them by
-name so your own tests never run there. Keep them as long as you keep `spec-lint`.
+name so your own tests never run there. They build their own throwaway projects from frozen
+fixtures and read only the tools under test, so filling in your documents or editing the PR
+template cannot break them. Keep them as long as you keep `spec-lint`.
