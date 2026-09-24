@@ -30,10 +30,13 @@ item) that keeps the decision from drifting.
   file per pull request.
 - **Accepted before merge.** An ADR is accepted (or rejected) on its open pull request, by a
   maintainer's `/adr` comment - never after merge. `spec-lint` fails a pull request that
-  changes an ADR whose front-matter `status` is still `proposed`.
+  changes an ADR whose front-matter `status` is still `proposed`. It cannot tell a `/adr accept`
+  from a status edited by hand, so never accept your own ADR by editing it: the required review
+  is what catches that.
 - **The registry agrees with the files.** Every ADR has a row in the Decision Registry below
   whose Status matches its front-matter `status` (for a superseded ADR, the row names the
-  successor), and every row has its file. `spec-lint` checks both directions.
+  successor, in the Status cell or a Superseded By column), and every row has its file. The ID
+  cell must say `ADR-NNNN`. `spec-lint` checks both directions.
 - Accepted ADRs are **immutable** - never edited after acceptance. To change a decision,
   add a new ADR and set `status: 'superseded by ADR-XXXX'` on the old one.
 - Deprecated and superseded ADRs stay in the index - never remove a row.
@@ -51,7 +54,8 @@ Maintainers (write/admin) drive transitions from a PR comment; the
 `status`, appends to `## Status history` and updates the registry row, then commits to the
 PR branch (it never merges). Because a commit pushed with the workflow token does not
 trigger `pull_request`, it then dispatches `spec-lint` on the PR branch so the new head gets
-its own result. Requires branch protection on the default branch.
+its own result. Requires branch protection on the default branch. Other required checks are
+not re-run on that commit: see [`docs/repo-setup.md`](../repo-setup.md) §6.
 
 | Comment | Effect |
 | --- | --- |

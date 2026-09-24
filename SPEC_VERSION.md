@@ -36,8 +36,11 @@ The spec's version is written in two places, and they do different jobs:
   not checked.
 
 **Enforced:** under `process.mode: sustain`, `spec-lint` fails when the newest Revision
-History version differs from Current Version above. Under `greenfield` it only warns, and only
-once the spec declares itself `Accepted`.
+History version differs from Current Version above, when this file is missing, and when either
+record holds a version it cannot compare. Under `greenfield` those only warn, and only once the
+spec declares itself `Accepted`. Write versions as dotted numbers (`1.2`; `v1.2` is read as
+`1.2`); they compare numerically, so `1.0` equals `1`. **Not checked:** this file's own
+Status field, and the spec header's `**Version:**`.
 
 ---
 
