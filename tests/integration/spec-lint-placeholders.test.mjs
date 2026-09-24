@@ -6,7 +6,7 @@
 
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { lint, skeleton } from './spec-lint-fixture.mjs'
+import { lint, skeleton, template } from './spec-lint-fixture.mjs'
 
 const BRIEF = skeleton('docs/product/brief.md')
 const brief = (text) => lint({ files: { 'docs/product/brief.md': `${BRIEF}\n${text}\n` } })
@@ -49,6 +49,6 @@ test('files in a change directory are scanned whatever their name', () => {
 })
 
 test('the pristine scaffold is not checked', () => {
-  const r = lint({ files: { 'docs/spec/technical-spec.md': '# Technical Specification: [Product Name]\n', 'docs/product/brief.md': `${BRIEF}\nOwner: [Name]\n` } })
+  const r = lint({ files: { 'docs/spec/technical-spec.md': template('docs/spec/technical-spec.md'), 'docs/product/brief.md': `${BRIEF}\nOwner: [Name]\n` } })
   assert.equal(r.code, 0, r.out)
 })

@@ -8,7 +8,7 @@
 
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { lint, PR_TEMPLATE as TEMPLATE, errorLines } from './spec-lint-fixture.mjs'
+import { lint, template, PR_TEMPLATE as TEMPLATE, errorLines } from './spec-lint-fixture.mjs'
 
 // A body that fills the template: placeholders replaced, the deviations example row deleted,
 // and every checkbox left unticked (ticks are not required).
@@ -68,7 +68,7 @@ test('PR_BODY unset (a push, a local run) skips the check', () => {
 })
 
 test('a pristine scaffold skips the check', () => {
-  const r = lint({ body: 'nothing like the template', files: { 'docs/spec/technical-spec.md': '# Technical Specification: [Product Name]\n' } })
+  const r = lint({ body: 'nothing like the template', files: { 'docs/spec/technical-spec.md': template('docs/spec/technical-spec.md') } })
   assert.equal(r.code, 0, r.out)
 })
 

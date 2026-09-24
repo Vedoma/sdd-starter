@@ -1031,8 +1031,26 @@ const CANONICAL_HEADINGS = {
   },
 }
 
-const withoutNumber = (text) => text.replace(/^\d+(?:\.\d+)*\.?\s+/, '')
+// Section numbers are ignored: "5.", "5" and "5)" all prefix the same heading.
+const withoutNumber = (text) => text.replace(/^\d+(?:\.\d+)*[.)]?\s+/, '')
+// A heading's letters and digits only, lower-cased: equal for "Revision History", "revision
+// history:", "🔒 Revision History" - and for "→" written "->".
+const loose = (text) => withoutNumber(text).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '')
+const words = (text) => new Set(withoutNumber(text).toLowerCase().match(/\p{L}{4,}/gu) || [])
 const quoteAll = (lines) => lines.map((l) => `"${l}"`).join(', ')
+
+// Each heading with the heading it sits under (the nearest earlier one of a lower level).
+const withParents = (headings) =>
+  headings.map((h, i) => ({ ...h, parent: headings.slice(0, i).reverse().find((p) => p.level < h.level) || null }))
+
+// Underlined (setext) headings - valid Markdown, but not what the starter writes.
+const setextHeadings = (md) => {
+  const lines = md.split('\n')
+  return lines.flatMap((l, i) => {
+    const under = (lines[i + 1] || '').match(/^ {0,3}(=+|-+)[ \t]*$/)
+    return under && l.trim() && !/^\s*([#>|*+-]|\d+[.)])/.test(l) ? [{ level: under[1][0] === '=' ? 1 : 2, text: l.trim() }] : []
+  })
+}
 
 function lintCanonicalHeadings() {
   for (const [path, { canonical, examples = [] }] of Object.entries(CANONICAL_HEADINGS)) {
@@ -1059,14 +1077,36 @@ function lintCanonicalHeadings() {
       continue
     }
     if (SCAFFOLD || !REQUIRED_DOCS.includes(path)) continue
-    const missing = canonical
-      .map((line) => ({ level: line.indexOf(' '), text: line.slice(line.indexOf(' ') + 1) }))
-      .filter((c) => !found.some((h) => h.level === c.level && withoutNumber(h.text) === withoutNumber(c.text)))
+    // A canonical subsection must sit under its canonical parent, when that parent is there at
+    // all (a missing parent is reported on its own).
+    const same = (a, b) => a.level === b.level && withoutNumber(a.text) === withoutNumber(b.text)
+    const want = withParents(canonical.map((line) => ({ level: line.indexOf(' '), text: line.slice(line.indexOf(' ') + 1) })))
+    const have = withParents(found)
+    const placed = (c, h) =>
+      same(c, h) && (!c.parent || !have.some((x) => same(x, c.parent)) || (h.parent && same(h.parent, c.parent)))
+    const unmatched = have.filter((h) => !want.some((c) => loose(c.text) === loose(h.text)))
+    const setext = setextHeadings(withoutCommentsAndFences(txt))
+    const missing = want
+      .filter((c) => !have.some((h) => placed(c, h)))
       .map((c) => {
-        const near = found.find((h) => withoutNumber(h.text).toLowerCase() === withoutNumber(c.text).toLowerCase())
-        if (!near) return `"${headingLine(c)}"`
-        const why = withoutNumber(near.text) === withoutNumber(c.text) ? 'keep its level' : "keep the starter's wording and case"
-        return `"${headingLine(c)}" (found as "${headingLine(near)}" - ${why})`
+        const line = `"${headingLine(c)}"`
+        const elsewhere = have.find((h) => same(c, h))
+        if (elsewhere)
+          return `${line} (found under "${elsewhere.parent ? headingLine(elsewhere.parent) : 'the title'}" - keep it under "${headingLine(c.parent)}")`
+        const moved = have.find((h) => withoutNumber(h.text) === withoutNumber(c.text))
+        if (moved) return `${line} (found as "${headingLine(moved)}" - keep its level)`
+        const near = have.find((h) => loose(h.text) === loose(c.text))
+        if (near) return `${line} (found as "${headingLine(near)}" - keep the starter's wording, case and punctuation)`
+        const underlined = setext.find((h) => loose(h.text) === loose(c.text))
+        if (underlined) return `${line} (found as an underlined heading "${underlined.text}" - write it as a # heading)`
+        const mine = words(c.text)
+        const renamed = unmatched
+          .filter((h) => h.level === c.level)
+          .map((h) => ({ h, shared: [...words(h.text)].filter((w) => mine.has(w)).length }))
+          .filter((x) => x.shared)
+          .sort((a, b) => b.shared - a.shared)[0]
+        if (renamed) return `${line} (renamed to "${headingLine(renamed.h)}"? - keep the starter's wording)`
+        return line
       })
     if (missing.length)
       err(
