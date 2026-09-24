@@ -74,8 +74,9 @@ jobs:
           fi
           if [ -n "$BASE_REF" ]; then
             # Pull request: pass the paths it changes so the diff-aware checks run.
-            # --no-renames lists a moved file under both its old and its new path.
-            CHANGED_FILES="$(git diff --name-only --no-renames "origin/$BASE_REF...HEAD")"
+            # --no-renames lists a moved file under both its old and its new path, and
+            # core.quotePath=false keeps non-ASCII paths as written instead of "\303\251".
+            CHANGED_FILES="$(git -c core.quotePath=false diff --name-only --no-renames "origin/$BASE_REF...HEAD")"
             export CHANGED_FILES
           else
             # Push: there is no pull request, but Actions still sets PR_BODY (to ""), which

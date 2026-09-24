@@ -28,9 +28,12 @@ A proposal's `**Status:**` moves one way: `Proposed → Accepted → Delivered �
 the default branch is either active (`Proposed`, `Accepted`) or archived (`Delivered`,
 `Archived`). `spec-lint` fails a `Delivered` or `Archived` change outside `archive/`, an
 archived change that was never delivered, an archived change no `SPEC_VERSION.md` Changelog
-row cites, and a pull request that archives a change without also changing `SPEC_VERSION.md`
-and the living spec. Editing an archived change counts as delivering it again, so archived
-records stay frozen. Whether the folded spec edit actually matches the delta is left to review.
+row cites, a pull request that archives a change without also changing `SPEC_VERSION.md`
+(with the citing Changelog row at the new Current Version) and the living spec, and a pull
+request that deletes a change. Editing an archived change counts as delivering it again, so
+archived records stay frozen. `Delivered` is still self-declared: a change whose every task box
+is ticked while it is still active only warns. Whether a change that shipped was ever
+delivered, and whether the folded spec edit matches the delta, are left to review.
 
 Delivered backlog tasks move to [`docs/plan/archive/`](../plan/archive/) by the same
 principle - the active `docs/plan/backlog.md` holds only open work.
@@ -43,16 +46,20 @@ holds the project to exactly one:
 - **`greenfield`** — the phases are bootstrapping the spec; `docs/spec/**` is edited
   directly. A `docs/changes/CHANGE-*` directory is an error.
 - **`sustain`** — this directory's flow. `docs/spec/technical-spec.md` must declare
-  `**Status:** Accepted`, and a pull request that edits `docs/spec/**` must also touch the
-  `CHANGE-NNNN/` directory it delivers.
+  `**Status:** Accepted`, and a pull request that edits `docs/spec/**` must deliver a change:
+  move its `CHANGE-NNNN/` directory to `archive/` in the same pull request.
 
-Switch `greenfield` → `sustain` deliberately, in its own pull request, once the spec is
-accepted. There is no way back: archived changes under `greenfield` are an error too.
+Switch `greenfield` → `sustain` deliberately, in its own pull request, after the pull request
+that accepts the spec has merged. There is no way back: archived changes under `greenfield`
+are an error too.
 
 You do not have to start greenfield. For an existing codebase, write a minimal
-`docs/spec/technical-spec.md` describing what is *already* true, accept it, set
-`process.mode: sustain`, then drive all further work through `docs/changes/`. This is the
-"brownfield first" path OpenSpec popularized, here in plain Markdown with no CLI dependency.
+`docs/spec/technical-spec.md` describing what is *already* true and accept it in one pull
+request, still under `greenfield`. Then set `process.mode: sustain` in a second pull request
+that edits nothing under `docs/spec/`, and drive all further work through `docs/changes/`.
+Doing both in one pull request fails: under `sustain` a spec edit must deliver a change, and
+the first spec is not a change. This is the "brownfield first" path OpenSpec
+popularized, here in plain Markdown with no CLI dependency.
 
 ## Numbering
 
@@ -68,8 +75,9 @@ sixteen predecessors that never existed.
 Every change has a row here, active or archived; never remove one. **Status** mirrors the
 `**Status:**` line of the change's `proposal.md`, and **Delivered In** names the spec version
 (`SPEC_VERSION.md`) the change folded into. `spec-lint` fails a change directory not named
-`CHANGE-NNNN`, a change with no row, a row whose Status disagrees with the proposal, and a row
-whose directory is gone.
+`CHANGE-NNNN` (and any other directory here besides `archive/`), a change with no row, a row
+whose Status disagrees with the proposal, a row whose directory is gone, and an ID that is not
+`CHANGE-NNNN` or appears in more than one row.
 
 | ID | Title | Status | Delivered In |
 | --- | --- | --- | --- |
