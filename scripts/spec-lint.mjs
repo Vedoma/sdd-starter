@@ -39,20 +39,25 @@ const SCAFFOLD = isScaffold()
 
 // ---- 1. Capabilities + process: mandatory documents present (C1) ----------------
 // Read the scalar `key` under a top-level `block:` in sdd.config.yml (quotes and a trailing
-// comment stripped). Hand-rolled because the scaffold ships no YAML dependency. Returns the
-// value as a string, or undefined.
+// comment stripped). Hand-rolled because the scaffold ships no YAML dependency, so it reads
+// block style only (`block:` then indented `key: value` lines, not `block: { key: value }`)
+// and only the block's own keys, not ones nested deeper. Returns the value as a string, or
+// undefined.
 function cfgValue(cfg, block, key) {
   let inBlock = false
-  for (const raw of cfg.split('\n')) {
-    if (new RegExp(`^${block}:\\s*$`).test(raw)) {
+  let indent = null // the indentation of the block's own keys, set by its first one
+  for (const raw of cfg.split(/\r?\n/)) {
+    if (new RegExp(`^${block}:\\s*(#.*)?$`).test(raw)) {
       inBlock = true
       continue
     }
-    if (inBlock && /^\S/.test(raw)) break // dedent to a new top-level key ends the block
-    if (inBlock) {
-      const m = raw.match(new RegExp(`^\\s+${key}:\\s*['"]?([^\\s#'"]+)`))
-      if (m) return m[1]
-    }
+    if (!inBlock || !raw.trim() || /^\s*#/.test(raw)) continue
+    if (/^\S/.test(raw)) break // dedent to a new top-level key ends the block
+    const lead = raw.match(/^\s*/)[0].length
+    indent ??= lead
+    if (lead !== indent) continue // a key nested under one of the block's own
+    const m = raw.match(new RegExp(`^\\s+${key}:\\s*['"]?([^\\s#'"]+)`))
+    if (m) return m[1]
   }
   return undefined
 }
@@ -254,7 +259,7 @@ if (!SCAFFOLD) lintBehaviourCoverage()
 // accepted spec only through docs/changes/CHANGE-NNNN deltas. Running both at once is how an
 // accepted spec gets edited silently, so each mode rejects the other's artifacts.
 const MODES = ['greenfield', 'sustain']
-const CHANGE_PATH = /^docs\/changes\/(?:archive\/)?CHANGE-(?!0000-template)[^/]+\//
+const CHANGE_PATH = /^docs\/changes\/(?:archive\/)?CHANGE-(?!0000-template\/)[^/]+\//
 
 // Change directories: active (docs/changes/) and delivered (docs/changes/archive/). The
 // shipped template is not a change.
@@ -262,7 +267,7 @@ function changeDirs() {
   const list = (base, archived) =>
     existsSync(base)
       ? readdirSync(base, { withFileTypes: true })
-          .filter((d) => d.isDirectory() && d.name.startsWith('CHANGE-') && !d.name.includes('0000-template'))
+          .filter((d) => d.isDirectory() && d.name.startsWith('CHANGE-') && d.name !== 'CHANGE-0000-template')
           .map((d) => ({ name: d.name, path: `${base}/${d.name}`, archived }))
       : []
   return [...list('docs/changes', false), ...list('docs/changes/archive', true)]
@@ -302,11 +307,12 @@ function lintProcessMode() {
     )
   if (CHANGED) {
     const specEdits = CHANGED.filter((p) => p.startsWith('docs/spec/'))
-    if (specEdits.length && !CHANGED.some((p) => CHANGE_PATH.test(p))) {
+    // A deleted path does not count: removing some other change does not deliver one.
+    if (specEdits.length && !CHANGED.some((p) => CHANGE_PATH.test(p) && existsSync(p))) {
       const shown = specEdits.slice(0, 3).join(', ') + (specEdits.length > 3 ? `, +${specEdits.length - 3} more` : '')
       err(
         'C3',
-        `this PR edits the living spec (${shown}) without touching a docs/changes/CHANGE-NNNN/ directory - in sustain mode docs/spec/** changes only by delivering a change (/change)`
+        `this PR edits the living spec (${shown}) without adding to or changing a docs/changes/CHANGE-NNNN/ directory - in sustain mode docs/spec/** changes only by delivering a change (/change)`
       )
     }
   }
