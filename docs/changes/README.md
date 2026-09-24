@@ -35,10 +35,14 @@ holds the project to exactly one:
   `**Status:** Accepted`, and a pull request that edits `docs/spec/**` must also touch the
   `CHANGE-NNNN/` directory it delivers.
 
-Switch `greenfield` → `sustain` deliberately, in its own pull request, once the spec is
-accepted. There is no way back: archived changes under `greenfield` are an error too.
+Switch `greenfield` → `sustain` deliberately, in its own pull request, after the pull request
+that accepts the spec has merged. There is no way back: archived changes under `greenfield`
+are an error too.
 
 You do not have to start greenfield. For an existing codebase, write a minimal
-`docs/spec/technical-spec.md` describing what is *already* true, accept it, set
-`process.mode: sustain`, then drive all further work through `docs/changes/`. This is the
-"brownfield first" path OpenSpec popularized, here in plain Markdown with no CLI dependency.
+`docs/spec/technical-spec.md` describing what is *already* true and accept it in one pull
+request, still under `greenfield`. Then set `process.mode: sustain` in a second pull request
+that edits nothing under `docs/spec/`, and drive all further work through `docs/changes/`.
+Doing both in one pull request fails: under `sustain` a spec edit must come with a change
+directory, and the first spec is not a change. This is the "brownfield first" path OpenSpec
+popularized, here in plain Markdown with no CLI dependency.

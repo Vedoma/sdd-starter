@@ -5,6 +5,9 @@
 # project IS (its shape) or because you chose a planning ceremony - never because of how
 # many people work on it.
 #
+# spec-lint reads this file without a YAML library, so keep it in block style: one
+# `key: value` per line, indented under its section - never `section: { key: value }`.
+#
 # Always required (the methodology's irreducible core):
 #   docs/product/brief.md, docs/spec/technical-spec.md, docs/plan/backlog.md
 
@@ -51,5 +54,6 @@ overrides:
 #               docs/changes/CHANGE-NNNN/. docs/spec/technical-spec.md must declare
 #               **Status:** Accepted, and a PR that edits docs/spec/** without touching a
 #               change directory is an error.
-# Switch greenfield -> sustain deliberately, in its own PR, once the spec is accepted. There
-# is no way back: archived changes under greenfield are an error too.
+# Switch greenfield -> sustain deliberately, in its own PR that edits nothing under
+# docs/spec/, after the PR accepting the spec has merged (docs/changes/README.md). There is
+# no way back: archived changes under greenfield are an error too.
