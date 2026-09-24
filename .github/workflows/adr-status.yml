@@ -21,6 +21,11 @@ name: ADR status update
 # Assumes the repo convention of ONE ADR file per PR (the "Detect single ADR
 # file" step enforces it) and that the default branch has branch protection so
 # these bot commits land on the PR branch, not on trunk.
+#
+# Limitation: the commit is pushed with GITHUB_TOKEN, which triggers no
+# `pull_request` workflow. spec-lint is re-dispatched below; any OTHER required
+# check (tests, a11y, ...) stays "Expected" on the new head until a maintainer
+# pushes to the branch or closes and reopens the PR. See docs/repo-setup.md §6.
 
 on:
   issue_comment:
@@ -165,8 +170,10 @@ jobs:
     # transition, failed on the `proposed` ADR. Dispatch spec-lint on the PR branch instead.
     # A separate job so that the PR-authored script above never holds `actions: write`; this
     # one checks nothing out and runs no repository code.
+    # always(): once the commit is pushed, a later failure in the job above (the confirmation
+    # comment) must not leave the new head without a spec-lint result.
     needs: adr-status
-    if: needs.adr-status.outputs.pushed == 'true'
+    if: always() && needs.adr-status.outputs.pushed == 'true'
     runs-on: ubuntu-latest
     permissions:
       actions: write
