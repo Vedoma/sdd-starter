@@ -56,9 +56,13 @@ const SKELETONS = {
 }
 export const skeleton = (path) => `${SKELETONS[path].join('\n\n')}\n`
 
-// Runs spec-lint on a project made of spec-lint, a greenfield sdd.config.yml and skeletons of
-// the three always-required documents, with `files` on top (null deletes one). `body`, when
-// given, becomes PR_BODY.
+// The PR template as the starter ships it, frozen in fixtures/ so that an adopter editing their
+// own .github/PULL_REQUEST_TEMPLATE.md changes what spec-lint enforces, not what these tests expect.
+export const PR_TEMPLATE = readFileSync(join(ROOT, 'tests/integration/fixtures/pr-template.md'), 'utf8')
+
+// Runs spec-lint on a project made of spec-lint, the frozen PR template, a greenfield
+// sdd.config.yml and skeletons of the three always-required documents, with `files` on top
+// (null deletes one). `body`, when given, becomes PR_BODY.
 export function lint({ files = {}, env = {}, body } = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'spec-lint-'))
   const put = (path, content) => {
@@ -67,6 +71,7 @@ export function lint({ files = {}, env = {}, body } = {}) {
   }
   try {
     put('scripts/spec-lint.mjs', repoFile('scripts/spec-lint.mjs'))
+    put('.github/PULL_REQUEST_TEMPLATE.md', PR_TEMPLATE)
     put('sdd.config.yml', 'process:\n  mode: greenfield\n')
     for (const path of ['docs/product/brief.md', 'docs/spec/technical-spec.md', 'docs/plan/backlog.md'])
       put(path, skeleton(path))

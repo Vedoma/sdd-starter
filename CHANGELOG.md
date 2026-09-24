@@ -78,9 +78,13 @@ Guidance for the next entry:
   headings and placeholders are read from `.github/PULL_REQUEST_TEMPLATE.md` at runtime; a
   body that drops or demotes a heading, quotes the template in a code fence, keeps a
   placeholder, or is blank fails, naming what is missing. Ticked boxes are not required.
-  Bot-authored PRs and a body with a reasoned `spec-lint: skip-pr-template` line skip the
-  PR-body checks, with a note. Its cases join the `node --test` fixtures in
-  `tests/integration/`.
+  Allowlisted dependency and release bots (`PR_EXEMPT_BOTS` in the workflow; `dependabot[bot]`
+  and `renovate[bot]` by default) skip the PR-body checks, and a
+  `spec-lint: skip-pr-template - reverts #123` line skips the structure check only (its reason
+  must cite a #N; the Spec Reference still applies), each with a note. The workflow re-runs on
+  `edited`, so the result follows the current description. Its cases join the `node --test`
+  fixtures in `tests/integration/`, which run against a frozen copy of the template, so an
+  adopter editing theirs cannot turn them red.
 
 ### Changed
 

@@ -6,7 +6,9 @@
 // or the pre-commit hook) and in CI (.github/workflows/spec-lint.yml).
 //
 // Optional env:
-//   PR_BODY         the pull-request body; when set, the Spec Reference check runs.
+//   PR_BODY         the pull-request body; when set, the PR-body checks run.
+//   PR_AUTHOR       the pull request's author login; PR_EXEMPT_BOTS (space-separated logins,
+//                   default dependabot[bot] renovate[bot]) are exempt from the PR-body checks.
 //   CHANGED_FILES   newline-separated repo-relative paths the pull request changes; when
 //                   set, the diff-aware checks run. CI computes it (spec-lint.yml); a local
 //                   run leaves it unset and those checks are skipped.
@@ -316,30 +318,36 @@ lintAdrRegistry()
 
 // ---- 4. PR carries a filled Spec Reference (C1) -----------------------------------
 // The PR-body checks (this one and section 13) read PR_BODY, which CI sets on pull requests
-// only. Automated PRs are exempt from both, by one explicit policy: a bot author
-// (PR_AUTHOR_TYPE=Bot, or a login ending in [bot] - Dependabot, release automation), or a body
-// with a visible line "spec-lint: skip-pr-template - <reason>" (a pure revert, say). The
-// exemption is printed as a note, and an opt-out without a reason is an error - never a silent
-// pass. An opt-out inside an HTML comment or code fence does not count.
+// only. Two narrow exemptions, each printed as a note - never a silent pass:
+// - A dependency or release bot on an explicit allowlist (PR_EXEMPT_BOTS, set in the workflow;
+//   dependabot[bot] and renovate[bot] by default) skips both checks. Not every bot: coding
+//   agents open pull requests as GitHub Apps too, and they are who these checks are for.
+// - A visible line "spec-lint: skip-pr-template - <reason>" whose reason cites the pull request
+//   or issue it concerns (a pure revert: "reverts #123") skips the template-structure check only.
+//   The Spec Reference is still required. An opt-out whose reason cites no #N is an error; one
+//   inside an HTML comment or code fence does not count.
 const PR_BODY = SCAFFOLD ? null : (process.env.PR_BODY ?? null)
-function prExemption(body) {
-  const author = process.env.PR_AUTHOR || ''
-  if (process.env.PR_AUTHOR_TYPE === 'Bot' || /\[bot\]$/.test(author)) return `the PR author ${author || '(unknown)'} is a bot`
+const EXEMPT_BOTS = (process.env.PR_EXEMPT_BOTS ?? 'dependabot[bot] renovate[bot]').split(/[\s,]+/).filter(Boolean)
+const PR_AUTHOR = process.env.PR_AUTHOR || ''
+const BOT_EXEMPT = PR_BODY != null && EXEMPT_BOTS.includes(PR_AUTHOR)
+if (BOT_EXEMPT)
+  notes.push(`PR body checks (Spec Reference, template structure) skipped - ${PR_AUTHOR} is on the PR_EXEMPT_BOTS allowlist`)
+function templateOptOut(body) {
   const m = withoutCommentsAndFences(body).match(/^[ \t]*spec-lint:[ \t]*skip-pr-template\b[ \t]*[-—:]?[ \t]*(.*)$/im)
-  if (!m) return null
+  if (!m) return false
   const reason = m[1].trim()
-  if (!reason)
+  if (!/#\d+/.test(reason))
     err(
       'C1',
-      'the PR body opts out of the PR checks ("spec-lint: skip-pr-template") without a reason - give one, e.g. "spec-lint: skip-pr-template - reverts #123"'
+      `the PR body opts out of the PR template check ("spec-lint: skip-pr-template") without a reason citing the pull request or issue it concerns - write e.g. "spec-lint: skip-pr-template - reverts #123"`
     )
-  return `the PR body opts out${reason ? `: "${reason}"` : ''}`
+  else notes.push(`PR template structure not checked - the PR body opts out: "${reason}" (its Spec Reference is still checked)`)
+  return true
 }
-const PR_EXEMPT = PR_BODY == null ? null : prExemption(PR_BODY)
-if (PR_EXEMPT) notes.push(`PR body checks (Spec Reference, template structure) skipped - ${PR_EXEMPT}`)
+const TEMPLATE_OPT_OUT = PR_BODY != null && !BOT_EXEMPT && templateOptOut(PR_BODY)
 
 // A blank body is reported once, by section 13.
-if (PR_BODY != null && !PR_EXEMPT && PR_BODY.trim() !== '') {
+if (PR_BODY != null && !BOT_EXEMPT && PR_BODY.trim() !== '') {
   const val = specRefValue(PR_BODY)
   if (unfilledRef(val)) {
     err('C1', 'the PR body has no filled Spec Reference (see the PR template)')
@@ -829,11 +837,12 @@ lintChangeLifecycle()
 //   of "Spec Amendment Required?") and is ignored; an unticked item that is nothing but a
 //   placeholder was never filled in, and is not.
 // - The Spec Reference row is section 4's alone, so its placeholder is not reported here; a
-//   blank body is reported here, once. Automated PRs are exempt - see section 4.
+//   blank body is reported here, once. Allowlisted bots and a reasoned opt-out are exempt -
+//   see section 4.
 const PR_TEMPLATE = '.github/PULL_REQUEST_TEMPLATE.md'
 const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 const headingsOf = (md) =>
-  [...md.matchAll(/^(#{1,6})[ \t]+(.+?)(?:[ \t]+#+)?[ \t]*$/gm)].map((m) => ({
+  [...md.matchAll(/^ {0,3}(#{1,6})[ \t]+(.+?)(?:[ \t]+#+)?[ \t]*$/gm)].map((m) => ({
     level: m[1].length,
     text: m[2].replace(/\s+/g, ' '),
   }))
@@ -901,7 +910,7 @@ function lintPrTemplate(body) {
       `the PR body still carries ${PR_TEMPLATE} placeholder${left.length > 1 ? 's' : ''} ${left.map((p) => `"${p}"`).join(', ')} - replace each with the real value, or delete an example row that does not apply`
     )
 }
-if (PR_BODY != null && !PR_EXEMPT) lintPrTemplate(PR_BODY)
+if (PR_BODY != null && !BOT_EXEMPT && !TEMPLATE_OPT_OUT) lintPrTemplate(PR_BODY)
 
 // ---- report ----------------------------------------------------------------------
 if (SCAFFOLD)
