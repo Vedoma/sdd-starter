@@ -171,6 +171,9 @@ function adrStatus(txt) {
   return m ? m[1].trim() : null
 }
 
+// The lifecycle states of ADR-0000-template.md; `superseded` also names its successor.
+const ADR_STATES = ['proposed', 'accepted', 'rejected', 'deprecated', 'superseded']
+
 // "superseded by ADR-0007" / "**Accepted**" -> { state: 'superseded', by: 'ADR-0007' }
 function adrState(text) {
   return {
@@ -190,7 +193,7 @@ function lintAdrRegistry() {
     const id = f.match(/^(ADR-\d{4})/)[1]
     const row = rows.find((r) => new RegExp(`\\b${id}\\b`).test(r.id))
     if (!row) {
-      err('C4', `docs/adr/README.md is missing a registry row for ${id} (${f})`)
+      err('C4', `docs/adr/README.md is missing a registry row for ${id} (${f}) - the row's ID cell must say ${id}`)
       continue
     }
     const status = adrStatus(read(`${dir}/${f}`))
@@ -199,6 +202,13 @@ function lintAdrRegistry() {
       continue
     }
     const file = adrState(status)
+    if (!ADR_STATES.includes(file.state) || (file.state === 'superseded') !== Boolean(file.by)) {
+      err(
+        'C4',
+        `${dir}/${f} has status '${status}' - expected ${ADR_STATES.slice(0, -1).join(', ')} or 'superseded by ADR-NNNN'`
+      )
+      continue
+    }
     const listed = adrState(row.status)
     if (listed.state === 'superseded' && !listed.by) listed.by = adrState(row['superseded by'] || '').by
     if (file.state !== listed.state || file.by !== listed.by)
