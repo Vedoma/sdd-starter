@@ -133,8 +133,10 @@ function adrId(file) {
 
 // Sets `updates` ({ column: value }, lower-cased header names) on the Decision Registry row
 // for `id` in README.md. Values come from a fixed set - statuses and ADR ids - never from the
-// comment. Returns the README path when a row changed, else null (no README, no row: spec-lint
-// reports a missing row on its own).
+// comment. Only the updated cells are rewritten, so the row keeps its spacing and its line
+// ending. A registry with no "Superseded By" column gets "superseded by ADR-NNNN" in its
+// Status cell instead, which spec-lint reads the same way. Returns the README path when a row
+// changed, else null (no README, no row: spec-lint reports a missing row on its own).
 function syncRegistryRow(id, updates) {
   const path = join(ADR_DIR, 'README.md')
   let text
@@ -158,11 +160,16 @@ function syncRegistryRow(id, updates) {
     }
     const idCol = header.indexOf('id')
     if (idCol === -1 || !new RegExp(`\\b${id}\\b`).test(cells[idCol] || '')) continue
-    for (const [col, value] of Object.entries(updates)) {
+    const set = { ...updates }
+    if (set['superseded by'] && !header.includes('superseded by'))
+      set.status = `${set.status} by ${set['superseded by']}`
+    // Raw segments between pipes: cell k is segment k + 1 (segment 0 precedes the first pipe).
+    const segments = lines[i].split('|')
+    for (const [col, value] of Object.entries(set)) {
       const k = header.indexOf(col)
-      if (k !== -1) cells[k] = value
+      if (k !== -1 && k < cells.length && cells[k] !== value) segments[k + 1] = ` ${value} `
     }
-    const next = `| ${cells.join(' | ')} |`
+    const next = segments.join('|')
     if (next !== lines[i]) {
       lines[i] = next
       touched = true

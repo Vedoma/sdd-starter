@@ -24,22 +24,23 @@ Guidance for the next entry:
 
 ### Added
 
-- `sdd.config.yml` declares `process.mode` (`greenfield` | `sustain`), and `spec-lint`
-  holds the project to it: `greenfield` fails on any `docs/changes/CHANGE-*` directory;
-  `sustain` requires an `Accepted` technical spec and fails a PR that edits `docs/spec/**`
-  without touching a change directory. Constitution C3 moves from `unenforced` to
-  `partial`.
 - Diff-aware `spec-lint` checks: on a pull request the workflow passes the changed paths as
   `CHANGED_FILES`; local runs leave it unset and those checks are skipped.
-- `spec-lint` blocks merging an ADR that is still `proposed`, and the Decision Registry must
-  agree with each ADR's front-matter `status` in both directions (a row per file, a file per
-  row). `adr-status` now updates the registry row too, then dispatches `spec-lint` on the PR
-  branch, because its workflow-token commit does not trigger `pull_request`. Constitution
-  C4 records the new coverage and stays `partial`.
+- `spec-lint` blocks merging an ADR that is still `proposed`, an ADR's front-matter `status`
+  must be one of the lifecycle states, and the Decision Registry must agree with it in both
+  directions (a row per file, a file per row). It cannot tell who accepted an ADR, so a status
+  edited by hand passes; the required review is the gate for that. `adr-status` now updates
+  the registry row too, then dispatches `spec-lint` on the PR branch, because its
+  workflow-token commit does not trigger `pull_request` (other required checks are not
+  re-run; see `docs/repo-setup.md` §6). Constitution C4 records the new coverage and stays
+  `partial`.
 - `spec-lint` fails a filled-in project whose required documents, `SPEC_VERSION.md` or active
-  change directories still carry scaffold placeholders (`[Product Name]`, `[Name]`,
-  `[Task Title]`, `[Title]`, `[Date]`, `[x.x]`, a `YYYY-MM-DD` date). HTML comments, code and
-  links are ignored, so prose does not trip it. A leftover backlog template block now fails
+  change directories still carry the scaffold's own placeholder markers (`[Product Name]`,
+  `[Name]`, `[Task Title]`, `[Title]`, `[Date]`, `[x.x]`; `[name]` or a `YYYY-MM-DD` date as a
+  table cell or after a `**Label:**`). It is a fixed list, not every template hint. HTML
+  comments, fenced and inline code, and links (including reference-style ones) are ignored,
+  so prose does not trip it; fences are read as GitHub renders them. Constitution C1 records
+  it. A leftover backlog template block now fails
   instead of silently switching the task checks off.
 - The relationship between the spec's Revision History and `SPEC_VERSION.md` is written down
   (`SPEC_VERSION.md` → "Two version records"): the history may advance while `Draft`;
@@ -51,6 +52,16 @@ Guidance for the next entry:
 
 - The `technical-spec.md` template starts at version `0.1`, matching `SPEC_VERSION.md`. It
   said `1.0`, so the starter shipped the very disagreement it now checks for.
+
+### Changed
+
+- **Breaking:** `sdd.config.yml` must declare `process.mode` (`greenfield` | `sustain`),
+  and `spec-lint` holds the project to it: `greenfield` fails on any `docs/changes/CHANGE-*`
+  directory; `sustain` requires an `Accepted` technical spec and fails a PR that edits
+  `docs/spec/**` without also changing a change directory. Constitution C3 moves from
+  `unenforced` to `partial`. **Migrating:** add `mode:` under `process:` in
+  `sdd.config.yml` — `greenfield` while you are still writing the spec, `sustain` if it is
+  accepted and you already work through `docs/changes/`. Without it `spec-lint` fails.
 
 ### Fixed
 

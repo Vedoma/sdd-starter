@@ -39,20 +39,25 @@ const SCAFFOLD = isScaffold()
 
 // ---- 1. Capabilities + process: mandatory documents present (C1) ----------------
 // Read the scalar `key` under a top-level `block:` in sdd.config.yml (quotes and a trailing
-// comment stripped). Hand-rolled because the scaffold ships no YAML dependency. Returns the
-// value as a string, or undefined.
+// comment stripped). Hand-rolled because the scaffold ships no YAML dependency, so it reads
+// block style only (`block:` then indented `key: value` lines, not `block: { key: value }`)
+// and only the block's own keys, not ones nested deeper. Returns the value as a string, or
+// undefined.
 function cfgValue(cfg, block, key) {
   let inBlock = false
-  for (const raw of cfg.split('\n')) {
-    if (new RegExp(`^${block}:\\s*$`).test(raw)) {
+  let indent = null // the indentation of the block's own keys, set by its first one
+  for (const raw of cfg.split(/\r?\n/)) {
+    if (new RegExp(`^${block}:\\s*(#.*)?$`).test(raw)) {
       inBlock = true
       continue
     }
-    if (inBlock && /^\S/.test(raw)) break // dedent to a new top-level key ends the block
-    if (inBlock) {
-      const m = raw.match(new RegExp(`^\\s+${key}:\\s*['"]?([^\\s#'"]+)`))
-      if (m) return m[1]
-    }
+    if (!inBlock || !raw.trim() || /^\s*#/.test(raw)) continue
+    if (/^\S/.test(raw)) break // dedent to a new top-level key ends the block
+    const lead = raw.match(/^\s*/)[0].length
+    indent ??= lead
+    if (lead !== indent) continue // a key nested under one of the block's own
+    const m = raw.match(new RegExp(`^\\s+${key}:\\s*['"]?([^\\s#'"]+)`))
+    if (m) return m[1]
   }
   return undefined
 }
@@ -167,6 +172,9 @@ function adrStatus(txt) {
   return m ? m[1].trim() : null
 }
 
+// The lifecycle states of ADR-0000-template.md; `superseded` also names its successor.
+const ADR_STATES = ['proposed', 'accepted', 'rejected', 'deprecated', 'superseded']
+
 // "superseded by ADR-0007" / "**Accepted**" -> { state: 'superseded', by: 'ADR-0007' }
 function adrState(text) {
   return {
@@ -186,7 +194,7 @@ function lintAdrRegistry() {
     const id = f.match(/^(ADR-\d{4})/)[1]
     const row = rows.find((r) => new RegExp(`\\b${id}\\b`).test(r.id))
     if (!row) {
-      err('C4', `docs/adr/README.md is missing a registry row for ${id} (${f})`)
+      err('C4', `docs/adr/README.md is missing a registry row for ${id} (${f}) - the row's ID cell must say ${id}`)
       continue
     }
     const status = adrStatus(read(`${dir}/${f}`))
@@ -195,6 +203,13 @@ function lintAdrRegistry() {
       continue
     }
     const file = adrState(status)
+    if (!ADR_STATES.includes(file.state) || (file.state === 'superseded') !== Boolean(file.by)) {
+      err(
+        'C4',
+        `${dir}/${f} has status '${status}' - expected ${ADR_STATES.slice(0, -1).join(', ')} or 'superseded by ADR-NNNN'`
+      )
+      continue
+    }
     const listed = adrState(row.status)
     if (listed.state === 'superseded' && !listed.by) listed.by = adrState(row['superseded by'] || '').by
     if (file.state !== listed.state || file.by !== listed.by)
@@ -329,7 +344,7 @@ if (!SCAFFOLD) lintBehaviourCoverage()
 // accepted spec only through docs/changes/CHANGE-NNNN deltas. Running both at once is how an
 // accepted spec gets edited silently, so each mode rejects the other's artifacts.
 const MODES = ['greenfield', 'sustain']
-const CHANGE_PATH = /^docs\/changes\/(?:archive\/)?CHANGE-(?!0000-template)[^/]+\//
+const CHANGE_PATH = /^docs\/changes\/(?:archive\/)?CHANGE-(?!0000-template\/)[^/]+\//
 
 // Change directories: active (docs/changes/) and delivered (docs/changes/archive/). The
 // shipped template is not a change.
@@ -337,7 +352,7 @@ function changeDirs() {
   const list = (base, archived) =>
     existsSync(base)
       ? readdirSync(base, { withFileTypes: true })
-          .filter((d) => d.isDirectory() && d.name.startsWith('CHANGE-') && !d.name.includes('0000-template'))
+          .filter((d) => d.isDirectory() && d.name.startsWith('CHANGE-') && d.name !== 'CHANGE-0000-template')
           .map((d) => ({ name: d.name, path: `${base}/${d.name}`, archived }))
       : []
   return [...list('docs/changes', false), ...list('docs/changes/archive', true)]
@@ -377,11 +392,12 @@ function lintProcessMode() {
     )
   if (CHANGED) {
     const specEdits = CHANGED.filter((p) => p.startsWith('docs/spec/'))
-    if (specEdits.length && !CHANGED.some((p) => CHANGE_PATH.test(p))) {
+    // A deleted path does not count: removing some other change does not deliver one.
+    if (specEdits.length && !CHANGED.some((p) => CHANGE_PATH.test(p) && existsSync(p))) {
       const shown = specEdits.slice(0, 3).join(', ') + (specEdits.length > 3 ? `, +${specEdits.length - 3} more` : '')
       err(
         'C3',
-        `this PR edits the living spec (${shown}) without touching a docs/changes/CHANGE-NNNN/ directory - in sustain mode docs/spec/** changes only by delivering a change (/change)`
+        `this PR edits the living spec (${shown}) without adding to or changing a docs/changes/CHANGE-NNNN/ directory - in sustain mode docs/spec/** changes only by delivering a change (/change)`
       )
     }
   }
@@ -391,41 +407,73 @@ if (!SCAFFOLD) lintProcessMode()
 // ---- 9. Adoption: no unfilled scaffold placeholders in governance documents (C1) ----
 // A governance document still carrying template markers - a spec owned by "[Name]", a version
 // log dated "YYYY-MM-DD" - was never adopted. Scans the documents sdd.config.yml requires,
-// SPEC_VERSION.md, and active change directories for the scaffold's own markers. Precision
-// over recall: HTML comments and fenced/inline code are blanked first (keeping line numbers),
-// a bracket marker followed by ( or [ is a link, and the date marker counts only as a table
-// cell or after a **Label:**, so prose such as "dates are YYYY-MM-DD" passes.
-const PLACEHOLDERS = ['[Product Name]', '[Task Title]', '[Title]', '[Name]', '[name]', '[Date]', '[x.x]']
+// SPEC_VERSION.md, and active change directories for the scaffold's own markers - a fixed
+// list, not every bracketed hint a template carries. Precision over recall: HTML comments,
+// fenced/inline code and link reference definitions are blanked first (keeping line numbers);
+// a bracket marker followed by ( or [, or defined as a link reference, is a link; and the
+// date and `[name]` markers count only as a table cell or after a **Label:**, so prose such as
+// "dates are YYYY-MM-DD" passes.
+const PLACEHOLDERS = ['[Product Name]', '[Task Title]', '[Title]', '[Name]', '[Date]', '[x.x]']
+const AFTER_LABEL = String.raw`(?<=\*\*[^*\n]+(?::\*\*|\*\*:)[ \t]*)`
 const PLACEHOLDER_RES = [
   ...PLACEHOLDERS.map((p) => ({
     label: p,
     re: new RegExp(`${p.replace(/[.[\]]/g, '\\$&')}(?![(\\[])`, 'g'),
   })),
-  { label: 'YYYY-MM-DD', re: /(?<=\|[ \t]*)YYYY-MM-DD(?=[ \t]*\|)|(?<=\*\*[^*\n]+\*\*[ \t]*)YYYY-MM-DD/g },
+  { label: '[name]', re: new RegExp(`${AFTER_LABEL}\\[name\\]`, 'g') },
+  { label: 'YYYY-MM-DD', re: new RegExp(`(?<=\\|[ \\t]*)YYYY-MM-DD(?=[ \\t]*\\|)|${AFTER_LABEL}YYYY-MM-DD`, 'g') },
 ]
 
-// The document with comments and code replaced by spaces, so line numbers still hold.
-function proseOnly(md) {
-  const blank = (m) => m.replace(/[^\n]/g, ' ')
-  return md
-    .replace(/\r\n/g, '\n')
-    .replace(/^(```|~~~)[^\n]*\n[\s\S]*?^\1[^\n]*$/gm, blank)
-    .replace(/<!--[\s\S]*?-->/g, blank)
-    .replace(/`[^`\n]*`/g, blank)
+// The document with HTML comments and fenced code blocks replaced by spaces, so line numbers
+// still hold. Fences follow CommonMark closely enough for prose checks: a run of 3+ backticks
+// or tildes opens one (at any indentation, so fences in list items count), only a run of the
+// same character at least as long closes it, and an unclosed fence runs to the end of the
+// document - which is how GitHub renders it.
+function withoutCommentsAndFences(md) {
+  const blank = (s) => s.replace(/[^\n]/g, ' ')
+  let fence = null
+  const lines = md.replace(/\r\n/g, '\n').split('\n').map((line) => {
+    if (fence) {
+      const close = line.match(/^\s*(`{3,}|~{3,})\s*$/)
+      if (close && close[1][0] === fence[0] && close[1].length >= fence.length) fence = null
+      return blank(line)
+    }
+    const open = line.match(/^\s*(`{3,}|~{3,})(.*)$/)
+    if (open && !(open[1][0] === '`' && open[2].includes('`'))) {
+      fence = open[1]
+      return blank(line)
+    }
+    return line
+  })
+  return lines.join('\n').replace(/<!--[\s\S]*?-->/g, blank)
 }
+
+// withoutCommentsAndFences, and inline code and link reference definitions blanked too.
+function proseOnly(md) {
+  const blank = (s) => s.replace(/[^\n]/g, ' ')
+  return withoutCommentsAndFences(md)
+    .replace(/`[^`\n]*`/g, blank)
+    .replace(/^ {0,3}\[[^\]\n]+\]:[ \t]*\S.*$/gm, blank)
+}
+
+// The labels a document defines as link references (`[label]: url`), lower-cased.
+const linkLabels = (md) =>
+  new Set([...withoutCommentsAndFences(md).matchAll(/^ {0,3}\[([^\]\n]+)\]:[ \t]*\S/gm)].map((m) => m[1].toLowerCase()))
 
 function lintPlaceholders() {
   const docs = new Set([...REQUIRED_DOCS, 'SPEC_VERSION.md'])
   for (const c of changeDirs().filter((c) => !c.archived))
     for (const f of readdirSync(c.path)) if (f.endsWith('.md')) docs.add(`${c.path}/${f}`)
-  for (const path of [...docs].filter((p) => !/template/i.test(p))) {
+  for (const path of docs) {
     const txt = read(path)
     if (!txt) continue
     const prose = proseOnly(txt)
+    const links = linkLabels(txt)
     const found = new Map() // label -> { first: index, lines: Set }
     let total = 0
     for (const { label, re } of PLACEHOLDER_RES)
       for (const m of prose.matchAll(re)) {
+        if (label.startsWith('[') && links.has(label.slice(1, -1).toLowerCase())) continue // a shortcut reference link
         const hit = found.get(label) || { first: m.index, lines: new Set() }
         hit.lines.add(prose.slice(0, m.index).split('\n').length)
         found.set(label, hit)
