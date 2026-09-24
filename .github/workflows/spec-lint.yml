@@ -31,6 +31,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: Test spec-lint
+        # The scaffold's own spec-lint tests (stock node --test). Selected by name, so your
+        # project's tests under tests/ never run here.
+        run: |
+          shopt -s nullglob
+          tests=(tests/*/spec-lint-*.test.mjs)
+          if [ ${#tests[@]} -gt 0 ]; then node --test "${tests[@]}"; fi
       - name: Resolve the pull request (dispatched runs)
         if: github.event_name == 'workflow_dispatch'
         id: dispatched
