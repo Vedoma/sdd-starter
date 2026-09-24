@@ -61,8 +61,9 @@ sixteen predecessors that never existed.
 Every change has a row here, active or archived; never remove one. **Status** mirrors the
 `**Status:**` line of the change's `proposal.md`, and **Delivered In** names the spec version
 (`SPEC_VERSION.md`) the change folded into. `spec-lint` fails a change directory not named
-`CHANGE-NNNN`, a change with no row, a row whose Status disagrees with the proposal, and a row
-whose directory is gone.
+`CHANGE-NNNN` (and any other directory here besides `archive/`), a change with no row, a row
+whose Status disagrees with the proposal, a row whose directory is gone, and an ID that is not
+`CHANGE-NNNN` or appears in more than one row.
 
 | ID | Title | Status | Delivered In |
 | --- | --- | --- | --- |
