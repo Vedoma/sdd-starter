@@ -344,8 +344,10 @@ if (!SCAFFOLD) lintBehaviourCoverage()
 // accepted spec only through docs/changes/CHANGE-NNNN deltas. Running both at once is how an
 // accepted spec gets edited silently, so each mode rejects the other's artifacts.
 const MODES = ['greenfield', 'sustain']
-// A path inside an archived change: what a delivering PR adds (section 12).
+// A path inside an archived change: what a delivering PR adds (section 12). And one inside an
+// active change.
 const ARCHIVED_CHANGE_PATH = /^docs\/changes\/archive\/CHANGE-\d{4}\//
+const ACTIVE_CHANGE_PATH = /^docs\/changes\/CHANGE-\d{4}\//
 
 // Change directories: active (docs/changes/) and delivered (docs/changes/archive/). The
 // shipped template is not a change.
@@ -392,15 +394,22 @@ function lintProcessMode() {
       `process.mode is sustain but docs/spec/technical-spec.md declares **Status:** ${status || '(none)'} - sustain begins once the spec is accepted; accept it, or return to process.mode: greenfield`
     )
   if (CHANGED) {
-    const specEdits = CHANGED.filter((p) => p.startsWith('docs/spec/'))
     // In sustain the spec changes only when a change is delivered, and delivering a change
     // archives it in the same PR (section 12). Touching an active change is not enough, and a
-    // deleted path does not count: removing some other change does not deliver one.
-    if (specEdits.length && !CHANGED.some((p) => ARCHIVED_CHANGE_PATH.test(p) && existsSync(p))) {
+    // deleted path does not count: removing some other change does not deliver one. The one
+    // exception is a change's scenarios: behaviour is specified before it is built (C10), so
+    // docs/spec/behavior/** may change ahead of delivery in a PR that also works on an active
+    // change - the scenarios its tasks cite have to exist before those tasks are implemented.
+    const delivers = CHANGED.some((p) => ARCHIVED_CHANGE_PATH.test(p) && existsSync(p))
+    const withChange = CHANGED.some((p) => ACTIVE_CHANGE_PATH.test(p) && existsSync(p))
+    const specEdits = CHANGED.filter(
+      (p) => p.startsWith('docs/spec/') && !(withChange && p.startsWith('docs/spec/behavior/'))
+    )
+    if (specEdits.length && !delivers) {
       const shown = specEdits.slice(0, 3).join(', ') + (specEdits.length > 3 ? `, +${specEdits.length - 3} more` : '')
       err(
         'C3',
-        `this PR edits the living spec (${shown}) without delivering a change - in sustain mode docs/spec/** changes only in the PR that folds a change's delta in and moves it to docs/changes/archive/ (docs/changes/README.md, "Deliver")`
+        `this PR edits the living spec (${shown}) without delivering a change - in sustain mode docs/spec/** changes only in the PR that folds a change's delta in and moves it to docs/changes/archive/ (docs/changes/README.md, "Deliver"); only a change's scenarios under docs/spec/behavior/ may land earlier, together with that active change`
       )
     }
   }
