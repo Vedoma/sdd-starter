@@ -87,6 +87,16 @@ Guidance for the next entry:
   `edited`, so the result follows the current description. Its cases join the `node --test`
   fixtures in `tests/integration/`, which run against a frozen copy of the template, so an
   adopter editing theirs cannot turn them red.
+- `spec-lint` pins the canonical section headings of the scaffolded documents (brief, PRD,
+  technical spec, API contracts, data model, design, backlog, milestones). A filled-in
+  required document that renames, re-cases, re-punctuates, demotes, moves or drops one fails,
+  naming what it found instead where it can (the same words at another level or under another
+  section, other case or punctuation, an underlined heading, or the likeliest rename);
+  sections may be added and renumbered in any number style. The list lives in
+  `scripts/spec-lint.mjs`, and while the repo is a pristine scaffold spec-lint fails any
+  template whose headings disagree with it, so the list cannot drift from the templates. The
+  tests of that sync read the repo's own templates, so they run only while the repo is the
+  untouched starter; every other test builds from frozen fixtures.
 
 ### Changed
 
