@@ -46,6 +46,11 @@ Commands are defined in [`.claude/commands/`](./.claude/commands/) and back onto
 tool-agnostic prompt bodies in [`prompts/`](./prompts/); a non-Claude agent can read the
 `prompts/` file directly.
 
+**Review is not a phase - it applies to every PR.** When you review a pull request or a
+diff you did not write, follow [`prompts/pr-review.md`](./prompts/pr-review.md)
+(`/pr-review`): verify each finding before you report it, separate what blocks from what
+does not, and say what you did not check. You draft the review; a human posts it.
+
 Which documents a given project is required to have is declared in
 [`sdd.config.yml`](./sdd.config.yml) — read it rather than assuming a document is
 mandatory or optional.
@@ -88,7 +93,7 @@ docs/
   spec/behavior/discovery/   # Example Mapping residue from /discover (Phase 2, optional)
   repo-setup.md              # GitHub settings the constitution assumes
   ecosystem/forge-md.md      # OPTIONAL: forge-md interop - delete if unused
-prompts/                     # tool-agnostic prompt bodies (one per phase)
+prompts/                     # tool-agnostic prompt bodies (one per command)
 .claude/commands/            # Claude Code command wrappers over prompts/
 .cursor/rules/               # points Cursor at this file + the constitution
 .github/                     # copilot-instructions.md (pointer), CODEOWNERS, PR template, CI
