@@ -31,8 +31,8 @@ item) that keeps the decision from drifting.
 - **Accepted before merge.** An ADR is accepted (or rejected) on its open pull request, by a
   maintainer's `/adr` comment - never after merge. `spec-lint` fails a pull request that
   changes an ADR whose front-matter `status` is still `proposed`. It cannot tell a `/adr accept`
-  from a status edited by hand, so never accept your own ADR by editing it: the required review
-  is what catches that.
+  from a status edited by hand, so never accept your own ADR by editing it: a required review
+  catches that, once CODEOWNERS and branch protection are set up (`docs/repo-setup.md` §2–3).
 - **The registry agrees with the files.** Every ADR has a row in the Decision Registry below
   whose Status matches its front-matter `status` (for a superseded ADR, the row names the
   successor, in the Status cell or a Superseded By column), and every row has its file. The ID

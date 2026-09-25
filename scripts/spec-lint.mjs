@@ -113,12 +113,13 @@ for (const doc of REQUIRED_DOCS) {
 }
 
 // ---- 2. Backlog tasks: Spec Reference + >=2 acceptance criteria (C1, C5) ----------
-// The Spec Reference value of a task block or PR body: its table cell (| **Spec Reference** | … |),
-// else a `Spec Reference: …` line. HTML comments and fenced code are ignored. '' when absent.
-// Tasks and the PR body read it the same way.
+// The Spec Reference value of a task block or PR body: its table cell (| **Spec Reference** | … |,
+// bold or not), else a `Spec Reference: …` line. A cell is read up to its closing pipe - read
+// past it, a blank cell comes back as "|" and passes. HTML comments and fenced code are
+// ignored. '' when absent. Tasks and the PR body read it the same way.
 function specRefValue(text) {
   const t = withoutCommentsAndFences(text)
-  const m = t.match(/\*\*Spec Reference\*\*\s*\|([^|\n]*)/) || t.match(/Spec Reference\**\s*[:|]\s*(.+)/)
+  const m = t.match(/Spec Reference\**\s*\|([^|\n]*)/) || t.match(/Spec Reference\**\s*:\**\s*(.+)/)
   return m ? m[1].trim() : ''
 }
 
@@ -135,8 +136,10 @@ const unfilledRef = (v) =>
 // heading of technical-spec.md or a section that a named change's spec-delta.md touches (a delta
 // may ADD a section the spec does not have yet); a task inside a change counts as naming it
 // (`home`). Each § belongs to the document named last before it: none, technical-spec.md or a
-// file inside a change is checked; any other document (`data-model.md §3`) cannot be resolved
-// and is accepted on presence alone. Returns { problems, resolvable }.
+// change's spec-delta.md is checked; any other document - `data-model.md §3`, or a change's own
+// design.md - cannot be resolved and is accepted on presence alone. A range is `§3-9`, or
+// `§3 – §9` with the second § written out, so `§3 - 2026 Q1` is not one. Returns
+// { problems, resolvable }.
 function resolveSpecRef(ref, home) {
   const problems = []
   let checked = 0
@@ -154,11 +157,11 @@ function resolveSpecRef(ref, home) {
   const docs = [...ref.matchAll(/[\w./-]+\.md\b/g)].map((m) => ({ at: m.index, name: m[0] }))
   const checkable = (at) => {
     const doc = docs.filter((d) => d.at < at).pop()
-    return !doc || /(^|\/)technical-spec\.md$/.test(doc.name) || /change-\d+/i.test(doc.name)
+    return !doc || /(^|\/)technical-spec\.md$/.test(doc.name) || /change-\d+\/(?:.*\/)?spec-delta\.md$/i.test(doc.name)
   }
   const tokens = []
-  for (const m of ref.matchAll(/§\s*([0-9][\w.]*)(?:\s*[-–]\s*§?\s*([0-9][\w.]*))?/g))
-    if (checkable(m.index)) for (const t of [m[1], m[2]]) if (t) tokens.push(t.replace(/\.+$/, ''))
+  for (const m of ref.matchAll(/§\s*([0-9][\w.]*)(?:[-–]([0-9][\w.]*)|\s*[-–]\s*§\s*([0-9][\w.]*))?/g))
+    if (checkable(m.index)) for (const t of [m[1], m[2], m[3]]) if (t) tokens.push(t.replace(/\.+$/, ''))
   if (tokens.length) {
     const headings = (md) => withoutCommentsAndFences(md || '').split('\n').filter((l) => /^#{1,6}\s/.test(l))
     const sections = new Set()
@@ -457,8 +460,10 @@ if (!SCAFFOLD) lintBehaviourCoverage()
 // accepted spec only through docs/changes/CHANGE-NNNN deltas. Running both at once is how an
 // accepted spec gets edited silently, so each mode rejects the other's artifacts.
 const MODES = ['greenfield', 'sustain']
-// A path inside an archived change: what a delivering PR adds (section 12).
+// A path inside an archived change: what a delivering PR adds (section 12). And one inside an
+// active change.
 const ARCHIVED_CHANGE_PATH = /^docs\/changes\/archive\/CHANGE-\d{4}\//
+const ACTIVE_CHANGE_PATH = /^docs\/changes\/CHANGE-\d{4}\//
 
 // Change directories: active (docs/changes/) and delivered (docs/changes/archive/). The
 // shipped template is not a change.
@@ -505,15 +510,22 @@ function lintProcessMode() {
       `process.mode is sustain but docs/spec/technical-spec.md declares **Status:** ${status || '(none)'} - sustain begins once the spec is accepted; accept it, or return to process.mode: greenfield`
     )
   if (CHANGED) {
-    const specEdits = CHANGED.filter((p) => p.startsWith('docs/spec/'))
     // In sustain the spec changes only when a change is delivered, and delivering a change
     // archives it in the same PR (section 12). Touching an active change is not enough, and a
-    // deleted path does not count: removing some other change does not deliver one.
-    if (specEdits.length && !CHANGED.some((p) => ARCHIVED_CHANGE_PATH.test(p) && existsSync(p))) {
+    // deleted path does not count: removing some other change does not deliver one. The one
+    // exception is a change's scenarios: behaviour is specified before it is built (C10), so
+    // docs/spec/behavior/** may change ahead of delivery in a PR that also works on an active
+    // change - the scenarios its tasks cite have to exist before those tasks are implemented.
+    const delivers = CHANGED.some((p) => ARCHIVED_CHANGE_PATH.test(p) && existsSync(p))
+    const withChange = CHANGED.some((p) => ACTIVE_CHANGE_PATH.test(p) && existsSync(p))
+    const specEdits = CHANGED.filter(
+      (p) => p.startsWith('docs/spec/') && !(withChange && p.startsWith('docs/spec/behavior/'))
+    )
+    if (specEdits.length && !delivers) {
       const shown = specEdits.slice(0, 3).join(', ') + (specEdits.length > 3 ? `, +${specEdits.length - 3} more` : '')
       err(
         'C3',
-        `this PR edits the living spec (${shown}) without delivering a change - in sustain mode docs/spec/** changes only in the PR that folds a change's delta in and moves it to docs/changes/archive/ (docs/changes/README.md, "Deliver")`
+        `this PR edits the living spec (${shown}) without delivering a change - in sustain mode docs/spec/** changes only in the PR that folds a change's delta in and moves it to docs/changes/archive/ (docs/changes/README.md, "Deliver"); only a change's scenarios under docs/spec/behavior/ may land earlier, together with that active change`
       )
     }
   }
@@ -531,13 +543,16 @@ if (!SCAFFOLD) lintProcessMode()
 // "dates are YYYY-MM-DD" passes.
 const PLACEHOLDERS = ['[Product Name]', '[Task Title]', '[Title]', '[Name]', '[Date]', '[x.x]']
 const AFTER_LABEL = String.raw`(?<=\*\*[^*\n]+(?::\*\*|\*\*:)[ \t]*)`
+// A marker alone in a table cell, or right after a **Label:**.
+const inCellOrAfterLabel = (marker) =>
+  new RegExp(`(?<=\\|[ \\t]*)${marker}(?=[ \\t]*\\|)|${AFTER_LABEL}${marker}`, 'g')
 const PLACEHOLDER_RES = [
   ...PLACEHOLDERS.map((p) => ({
     label: p,
     re: new RegExp(`${p.replace(/[.[\]]/g, '\\$&')}(?![(\\[])`, 'g'),
   })),
-  { label: '[name]', re: new RegExp(`${AFTER_LABEL}\\[name\\]`, 'g') },
-  { label: 'YYYY-MM-DD', re: new RegExp(`(?<=\\|[ \\t]*)YYYY-MM-DD(?=[ \\t]*\\|)|${AFTER_LABEL}YYYY-MM-DD`, 'g') },
+  { label: '[name]', re: inCellOrAfterLabel('\\[name\\]') },
+  { label: 'YYYY-MM-DD', re: inCellOrAfterLabel('YYYY-MM-DD') },
 ]
 
 // The document with HTML comments and fenced code blocks replaced by spaces, so line numbers
@@ -631,10 +646,14 @@ const parseVersion = (s) => {
   return VERSION.test(v) ? v : null
 }
 
-// The lines under the first heading matching `re`, up to the next heading.
+// The lines under the first heading whose text (after its #s) matches `re`, up to the next
+// heading.
 function sectionBody(md, re) {
   const lines = md.replace(/\r\n/g, '\n').split('\n')
-  const start = lines.findIndex((l) => /^#{1,6}\s/.test(l) && re.test(l))
+  const start = lines.findIndex((l) => {
+    const h = l.match(/^#{1,6}\s+(.*)$/)
+    return h && re.test(h[1].trim())
+  })
   if (start === -1) return ''
   const end = lines.findIndex((l, i) => i > start && /^#{1,6}\s/.test(l))
   return lines.slice(start + 1, end === -1 ? undefined : end).join('\n')
@@ -652,7 +671,8 @@ function lintVersionRecords() {
     )
   const log = read('SPEC_VERSION.md')
   if (!log) return report('SPEC_VERSION.md is missing')
-  const history = tableRows(sectionBody(spec, /revision history/i), ['version'])
+  // The section itself, not a feature that mentions it ("## 3. Revision history export").
+  const history = tableRows(sectionBody(spec, /^(?:\d+(?:\.\d+)*[.)]?\s+)?revision history$/i), ['version'])
     .map((r) => cellText(r.version))
     .filter(Boolean)
   if (!history.length)
@@ -687,12 +707,18 @@ if (!SCAFFOLD) lintVersionRecords()
 // four-digit number, never an id borrowed from an issue tracker - and has a row in
 // docs/changes/README.md whose Status matches its proposal.md. A row whose directory is gone
 // means a change was deleted rather than archived (C8). A directory that is not CHANGE-* at
-// all would escape every change check, so it fails too. Structural, so it runs in scaffold
-// mode too.
+// all would escape every change check, so it fails too - except a hidden one (.obsidian/,
+// .vscode/), which is tool metadata, not a misnamed change. Structural, so it runs in
+// scaffold mode too.
 function lintChangeRegistry() {
   for (const base of ['docs/changes', 'docs/changes/archive'])
     for (const d of existsSync(base) ? readdirSync(base, { withFileTypes: true }) : [])
-      if (d.isDirectory() && !d.name.startsWith('CHANGE-') && !(base === 'docs/changes' && d.name === 'archive'))
+      if (
+        d.isDirectory() &&
+        !d.name.startsWith('CHANGE-') &&
+        !d.name.startsWith('.') &&
+        !(base === 'docs/changes' && d.name === 'archive')
+      )
         err(
           'C3',
           `${base}/${d.name} is not a change directory - everything under docs/changes/ is CHANGE-NNNN (or archive/), so the change checks would skip it; rename it CHANGE-NNNN or move it out of docs/changes/`

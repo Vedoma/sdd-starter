@@ -36,6 +36,10 @@ test('a directory that is not CHANGE-* at all fails instead of escaping every ch
     assert.match(run({ [`${dir}/proposal.md`]: proposal('Delivered') }).out, new RegExp(`${dir} is not a change directory`), dir)
 })
 
+test('a hidden directory is tool metadata, not a misnamed change', () => {
+  assert.deepEqual(registryErrors(run({ 'docs/changes/.obsidian/app.json': '{}' }).out), [])
+})
+
 test('a malformed registry id is reported whole, and a duplicated one fails', () => {
   for (const id of ['CHANGE-00005', 'CHANGE-12345'])
     assert.match(run({ 'docs/changes/README.md': registry([`| ${id} | x | Proposed | |`]) }).out, new RegExp(`has a row for "${id}"`), id)
