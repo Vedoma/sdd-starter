@@ -54,7 +54,7 @@ overrides:
 #               docs/changes/CHANGE-NNNN/. docs/spec/technical-spec.md must declare
 #               **Status:** Accepted, and a PR that edits docs/spec/** without delivering
 #               a change (archiving it in the same PR) is an error - except a change's
-#               scenarios in docs/spec/behavior/, which land with the active change.
+#               new docs/spec/behavior/*.feature files, which land with the active change.
 # Switch greenfield -> sustain deliberately, in its own PR that edits nothing under
 # docs/spec/, after the PR accepting the spec has merged (docs/changes/README.md). There is
 # no way back: archived changes under greenfield are an error too.

@@ -48,9 +48,10 @@ holds the project to exactly one:
 - **`sustain`** — this directory's flow. `docs/spec/technical-spec.md` must declare
   `**Status:** Accepted`, and a pull request that edits `docs/spec/**` must deliver a change:
   move its `CHANGE-NNNN/` directory to `archive/` in the same pull request. The exception is a
-  change's scenarios: behaviour is specified before it is built (constitution C10), so
-  `docs/spec/behavior/**` may change earlier, in a pull request that also works on the active
-  change whose tasks cite them.
+  change's *new* scenarios: behaviour is specified before it is built (constitution C10), so a
+  `docs/spec/behavior/*.feature` file the pull request adds may land earlier, together with the
+  active change whose tasks cite it. Editing or deleting an accepted scenario waits for delivery
+  like the rest of the spec.
 
 Switch `greenfield` → `sustain` deliberately, in its own pull request, after the pull request
 that accepts the spec has merged. There is no way back: archived changes under `greenfield`

@@ -10,6 +10,7 @@
 //   CHANGED_FILES   newline-separated repo-relative paths the pull request changes; when
 //                   set, the diff-aware checks run. CI computes it (spec-lint.yml); a local
 //                   run leaves it unset and those checks are skipped.
+//   ADDED_FILES     the subset of CHANGED_FILES the pull request adds (new files only).
 //
 // Each check maps to a constitution.md clause; see the `clause` tag on each finding.
 
@@ -21,13 +22,17 @@ const err = (clause, msg) => errors.push(`[${clause}] ${msg}`)
 const warn = (clause, msg) => warnings.push(`[${clause}] ${msg}`)
 const read = (p) => (existsSync(p) ? readFileSync(p, 'utf8') : null)
 
-// What the pull request changes, or null when unknown (a local run, a push to main).
-const CHANGED =
-  process.env.CHANGED_FILES == null
+// What the pull request changes, or null when unknown (a local run, a push to main), and which
+// of those paths it adds.
+const pathList = (v) =>
+  v == null
     ? null
-    : process.env.CHANGED_FILES.split(/\r?\n/)
+    : v
+        .split(/\r?\n/)
         .map((p) => p.trim())
         .filter(Boolean)
+const CHANGED = pathList(process.env.CHANGED_FILES)
+const ADDED = pathList(process.env.ADDED_FILES) || []
 
 // A pristine scaffold is not a project yet: its spec is still the template. The
 // project-level checks (mandatory documents, PR Spec Reference) only make sense once the
@@ -397,19 +402,19 @@ function lintProcessMode() {
     // In sustain the spec changes only when a change is delivered, and delivering a change
     // archives it in the same PR (section 12). Touching an active change is not enough, and a
     // deleted path does not count: removing some other change does not deliver one. The one
-    // exception is a change's scenarios: behaviour is specified before it is built (C10), so
-    // docs/spec/behavior/** may change ahead of delivery in a PR that also works on an active
-    // change - the scenarios its tasks cite have to exist before those tasks are implemented.
+    // exception is a change's new scenarios: behaviour is specified before it is built (C10), so
+    // a *.feature file the PR adds under docs/spec/behavior/ may land ahead of delivery, in a PR
+    // that also works on an active change. Editing or deleting an accepted scenario, or any other
+    // file there, still waits for delivery like the rest of the spec.
     const delivers = CHANGED.some((p) => ARCHIVED_CHANGE_PATH.test(p) && existsSync(p))
     const withChange = CHANGED.some((p) => ACTIVE_CHANGE_PATH.test(p) && existsSync(p))
-    const specEdits = CHANGED.filter(
-      (p) => p.startsWith('docs/spec/') && !(withChange && p.startsWith('docs/spec/behavior/'))
-    )
+    const newScenario = (p) => /^docs\/spec\/behavior\/.+\.feature$/.test(p) && ADDED.includes(p)
+    const specEdits = CHANGED.filter((p) => p.startsWith('docs/spec/') && !(withChange && newScenario(p)))
     if (specEdits.length && !delivers) {
       const shown = specEdits.slice(0, 3).join(', ') + (specEdits.length > 3 ? `, +${specEdits.length - 3} more` : '')
       err(
         'C3',
-        `this PR edits the living spec (${shown}) without delivering a change - in sustain mode docs/spec/** changes only in the PR that folds a change's delta in and moves it to docs/changes/archive/ (docs/changes/README.md, "Deliver"); only a change's scenarios under docs/spec/behavior/ may land earlier, together with that active change`
+        `this PR edits the living spec (${shown}) without delivering a change - in sustain mode docs/spec/** changes only in the PR that folds a change's delta in and moves it to docs/changes/archive/ (docs/changes/README.md, "Deliver"); only a new scenario file (docs/spec/behavior/*.feature, added by this PR) may land earlier, together with its active change`
       )
     }
   }
