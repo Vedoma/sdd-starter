@@ -415,13 +415,16 @@ if (!SCAFFOLD) lintProcessMode()
 // "dates are YYYY-MM-DD" passes.
 const PLACEHOLDERS = ['[Product Name]', '[Task Title]', '[Title]', '[Name]', '[Date]', '[x.x]']
 const AFTER_LABEL = String.raw`(?<=\*\*[^*\n]+(?::\*\*|\*\*:)[ \t]*)`
+// A marker alone in a table cell, or right after a **Label:**.
+const inCellOrAfterLabel = (marker) =>
+  new RegExp(`(?<=\\|[ \\t]*)${marker}(?=[ \\t]*\\|)|${AFTER_LABEL}${marker}`, 'g')
 const PLACEHOLDER_RES = [
   ...PLACEHOLDERS.map((p) => ({
     label: p,
     re: new RegExp(`${p.replace(/[.[\]]/g, '\\$&')}(?![(\\[])`, 'g'),
   })),
-  { label: '[name]', re: new RegExp(`${AFTER_LABEL}\\[name\\]`, 'g') },
-  { label: 'YYYY-MM-DD', re: new RegExp(`(?<=\\|[ \\t]*)YYYY-MM-DD(?=[ \\t]*\\|)|${AFTER_LABEL}YYYY-MM-DD`, 'g') },
+  { label: '[name]', re: inCellOrAfterLabel('\\[name\\]') },
+  { label: 'YYYY-MM-DD', re: inCellOrAfterLabel('YYYY-MM-DD') },
 ]
 
 // The document with HTML comments and fenced code blocks replaced by spaces, so line numbers
