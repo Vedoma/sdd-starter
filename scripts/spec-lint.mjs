@@ -579,12 +579,18 @@ if (!SCAFFOLD) lintVersionRecords()
 // four-digit number, never an id borrowed from an issue tracker - and has a row in
 // docs/changes/README.md whose Status matches its proposal.md. A row whose directory is gone
 // means a change was deleted rather than archived (C8). A directory that is not CHANGE-* at
-// all would escape every change check, so it fails too. Structural, so it runs in scaffold
-// mode too.
+// all would escape every change check, so it fails too - except a hidden one (.obsidian/,
+// .vscode/), which is tool metadata, not a misnamed change. Structural, so it runs in
+// scaffold mode too.
 function lintChangeRegistry() {
   for (const base of ['docs/changes', 'docs/changes/archive'])
     for (const d of existsSync(base) ? readdirSync(base, { withFileTypes: true }) : [])
-      if (d.isDirectory() && !d.name.startsWith('CHANGE-') && !(base === 'docs/changes' && d.name === 'archive'))
+      if (
+        d.isDirectory() &&
+        !d.name.startsWith('CHANGE-') &&
+        !d.name.startsWith('.') &&
+        !(base === 'docs/changes' && d.name === 'archive')
+      )
         err(
           'C3',
           `${base}/${d.name} is not a change directory - everything under docs/changes/ is CHANGE-NNNN (or archive/), so the change checks would skip it; rename it CHANGE-NNNN or move it out of docs/changes/`
