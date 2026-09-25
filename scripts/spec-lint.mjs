@@ -530,13 +530,13 @@ const parseVersion = (s) => {
   return VERSION.test(v) ? v : null
 }
 
-// The lines under the first heading whose text (after its #s) matches `re`, up to the next
-// heading.
+// The lines under the first heading whose text (after its #s, and without a closing #
+// sequence) matches `re`, up to the next heading.
 function sectionBody(md, re) {
   const lines = md.replace(/\r\n/g, '\n').split('\n')
   const start = lines.findIndex((l) => {
-    const h = l.match(/^#{1,6}\s+(.*)$/)
-    return h && re.test(h[1].trim())
+    const h = l.match(/^#{1,6}\s+(.*?)(?:\s+#+)?\s*$/)
+    return h && re.test(h[1])
   })
   if (start === -1) return ''
   const end = lines.findIndex((l, i) => i > start && /^#{1,6}\s/.test(l))
@@ -560,7 +560,9 @@ function lintVersionRecords() {
     .map((r) => cellText(r.version))
     .filter(Boolean)
   if (!history.length)
-    return report('docs/spec/technical-spec.md has no Revision History table with a Version column, or no rows in it')
+    return report(
+      'docs/spec/technical-spec.md has no "## Revision History" section (numbered or not) with a Version table, or no rows in it'
+    )
   const unparsed = history.filter((v) => !parseVersion(v))
   if (unparsed.length)
     return report(
