@@ -576,6 +576,72 @@ function lintVersionRecords() {
 }
 if (!SCAFFOLD) lintVersionRecords()
 
+// ---- 11. Change registry: CHANGE-NNNN naming + a matching row per change (C3, C8) ----
+// Mirrors the ADR registry (section 3). A change is docs/changes/CHANGE-NNNN/ - the next free
+// four-digit number, never an id borrowed from an issue tracker - and has a row in
+// docs/changes/README.md whose Status matches its proposal.md. A row whose directory is gone
+// means a change was deleted rather than archived (C8). A directory that is not CHANGE-* at
+// all would escape every change check, so it fails too - except a hidden one (.obsidian/,
+// .vscode/), which is tool metadata, not a misnamed change. Structural, so it runs in
+// scaffold mode too.
+function lintChangeRegistry() {
+  for (const base of ['docs/changes', 'docs/changes/archive'])
+    for (const d of existsSync(base) ? readdirSync(base, { withFileTypes: true }) : [])
+      if (
+        d.isDirectory() &&
+        !d.name.startsWith('CHANGE-') &&
+        !d.name.startsWith('.') &&
+        !(base === 'docs/changes' && d.name === 'archive')
+      )
+        err(
+          'C3',
+          `${base}/${d.name} is not a change directory - everything under docs/changes/ is CHANGE-NNNN (or archive/), so the change checks would skip it; rename it CHANGE-NNNN or move it out of docs/changes/`
+        )
+  const changes = changeDirs()
+  const rows = tableRows(read('docs/changes/README.md') || '', ['id', 'status'])
+  for (const c of changes) {
+    if (!/^CHANGE-\d{4}$/.test(c.name)) {
+      err(
+        'C3',
+        `${c.path} is not named CHANGE-NNNN - a change takes the next free four-digit number (CHANGE-0001, CHANGE-0002, ...), never an issue or pull-request number; see docs/changes/README.md`
+      )
+      continue
+    }
+    const row = rows.find((r) => new RegExp(`\\b${c.name}\\b`).test(r.id))
+    if (!row) {
+      err('C3', `docs/changes/README.md is missing a registry row for ${c.name} (${c.path})`)
+      continue
+    }
+    const status = docStatus(read(`${c.path}/proposal.md`))
+    if (!status) {
+      err('C3', `${c.path}/proposal.md has no **Status:** - the registry check reads it from there`)
+      continue
+    }
+    if (cellText(row.status).toLowerCase() !== status.toLowerCase())
+      err(
+        'C3',
+        `docs/changes/README.md lists ${c.name} as "${cellText(row.status)}", but ${c.path}/proposal.md says "${status}" - update the registry row`
+      )
+  }
+  const listed = new Map() // id -> number of rows
+  for (const r of rows) {
+    const id = (r.id.match(/\bCHANGE-\w+/i) || [])[0]
+    if (!id || id === 'CHANGE-0000') continue
+    if (!/^CHANGE-\d{4}$/.test(id)) {
+      err('C3', `docs/changes/README.md has a row for "${id}" - registry IDs are CHANGE-NNNN, four digits`)
+      continue
+    }
+    listed.set(id, (listed.get(id) || 0) + 1)
+    if (listed.get(id) === 2) err('C3', `docs/changes/README.md lists ${id} more than once - keep one row per change`)
+    if (listed.get(id) === 1 && !changes.some((c) => c.name === id || c.name.startsWith(`${id}-`)))
+      err(
+        'C8',
+        `docs/changes/README.md lists ${id}, but neither docs/changes/${id} nor docs/changes/archive/${id} exists - changes are archived, never deleted`
+      )
+  }
+}
+lintChangeRegistry()
+
 // ---- report ----------------------------------------------------------------------
 if (SCAFFOLD)
   console.log(

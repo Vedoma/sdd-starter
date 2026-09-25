@@ -46,3 +46,25 @@ that edits nothing under `docs/spec/`, and drive all further work through `docs/
 Doing both in one pull request fails: under `sustain` a spec edit must come with a change
 directory, and the first spec is not a change. This is the "brownfield first" path OpenSpec
 popularized, here in plain Markdown with no CLI dependency.
+
+## Numbering
+
+A change lives in `docs/changes/CHANGE-NNNN/`, where `NNNN` is the **next free sequential
+number** across active and archived changes, zero-padded to four digits: `CHANGE-0001`,
+`CHANGE-0002`, ... Do not borrow an id from an issue tracker. A tracker's ids belong to the
+tracker - GitHub, for one, numbers issues and pull requests from a single sequence - so they
+are neither stable nor collision-free here, and a first change called `CHANGE-0017` implies
+sixteen predecessors that never existed.
+
+## Change Registry
+
+Every change has a row here, active or archived; never remove one. **Status** mirrors the
+`**Status:**` line of the change's `proposal.md`, and **Delivered In** names the spec version
+(`SPEC_VERSION.md`) the change folded into. `spec-lint` fails a change directory not named
+`CHANGE-NNNN` (and any other directory here besides `archive/`), a change with no row, a row
+whose Status disagrees with the proposal, a row whose directory is gone, and an ID that is not
+`CHANGE-NNNN` or appears in more than one row.
+
+| ID | Title | Status | Delivered In |
+| --- | --- | --- | --- |
+| _(add a row per change, ordered by number - never remove rows)_ | | | |
