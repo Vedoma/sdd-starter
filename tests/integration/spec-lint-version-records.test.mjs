@@ -44,7 +44,16 @@ test('sustain: a version spec-lint cannot compare is named, not dropped', () => 
 
 test('a bold Version header is found; a table without a Version column is named', () => {
   assert.equal(run({ versions: ['1.0'], current: '1.0', header: '| **Version** | Date | Author | Changes |' }).code, 0)
-  assert.match(run({ versions: ['1.0'], current: '1.0', header: '| Rev | Date | Author | Changes |' }).out, /no Revision History table with a Version column/)
+  assert.match(run({ versions: ['1.0'], current: '1.0', header: '| Rev | Date | Author | Changes |' }).out, /no "## Revision History" section \(numbered or not\) with a Version table/)
+})
+
+test('a closing # sequence on the Revision History heading is still that heading', () => {
+  const files = {
+    'sdd.config.yml': 'process:\n  mode: sustain\n',
+    'docs/spec/technical-spec.md': spec(['1.0']).replace('## 10. Revision History', '## 10. Revision History ##'),
+    'SPEC_VERSION.md': specVersion('1.0'),
+  }
+  assert.equal(lint({ files }).code, 0)
 })
 
 test('the Revision History section is found by its name, not by a feature that mentions it', () => {

@@ -22,10 +22,10 @@ const tasks = (...ticks) =>
   `# Tasks - CHANGE-0001\n\n### TASK-001: Do it\n\n| Field | Value |\n| --- | --- |\n| **Spec Reference** | §1 |\n\n${ticks.map((t) => `- [${t ? 'x' : ' '}] criterion`).join('\n')}\n`
 
 // A sustain project at spec version `v`, with `files` on top.
-const run = ({ v = '1.0', log = [], files = {}, changed } = {}) =>
+const run = ({ v = '1.0', log = [], files = {}, changed, added = [] } = {}) =>
   lint({
     files: { 'sdd.config.yml': 'process:\n  mode: sustain\n', 'docs/spec/technical-spec.md': spec(v), 'SPEC_VERSION.md': specVersion(v, log), ...files },
-    env: changed ? { CHANGED_FILES: changed.join('\n') } : {},
+    env: changed ? { CHANGED_FILES: changed.join('\n'), ADDED_FILES: added.join('\n') } : {},
   })
 
 const active = (status, ...ticks) => ({
@@ -58,12 +58,22 @@ test('a spec edit that delivers no change fails, even when it touches an active 
     assert.match(run({ files: active('Accepted'), changed }).out, /edits the living spec .* without delivering a change/)
 })
 
-test("a change's scenarios may land before delivery, but only with the active change", () => {
-  const files = { ...active('Accepted'), 'docs/spec/behavior/login.feature': 'Feature: Login\n' }
-  const ok = run({ files, changed: ['docs/spec/behavior/login.feature', 'docs/changes/CHANGE-0001/tasks.md'] })
+test("a change's new scenario file may land before delivery, with the active change - nothing else may", () => {
+  const scenario = 'docs/spec/behavior/login.feature'
+  const guide = 'docs/spec/behavior/gherkin-guidelines.md'
+  const tasks = 'docs/changes/CHANGE-0001/tasks.md'
+  const files = { ...active('Accepted'), [scenario]: 'Feature: Login\n', [guide]: '# Guidelines\n' }
+  const ok = run({ files, changed: [scenario, tasks], added: [scenario] })
   assert.equal(ok.code, 0, ok.out)
-  for (const changed of [['docs/spec/behavior/login.feature'], ['docs/spec/behavior/login.feature', 'docs/spec/technical-spec.md', 'docs/changes/CHANGE-0001/tasks.md']])
-    assert.match(run({ files, changed }).out, /edits the living spec .* without delivering a change/, changed.join(' '))
+  const blocked = {
+    'a new scenario with no change': { changed: [scenario], added: [scenario] },
+    'an accepted scenario edited': { changed: [scenario, tasks] },
+    'an accepted scenario deleted': { changed: ['docs/spec/behavior/gone.feature', tasks] },
+    'a non-scenario file under behavior/': { changed: [guide, tasks], added: [guide] },
+    'a new scenario next to a spec edit': { changed: [scenario, 'docs/spec/technical-spec.md', tasks], added: [scenario] },
+  }
+  for (const [name, pr] of Object.entries(blocked))
+    assert.match(run({ files, ...pr }).out, /edits the living spec .* without delivering a change/, name)
 })
 
 test('a Delivered change outside archive/, and an archived change never delivered or never cited, fail', () => {
