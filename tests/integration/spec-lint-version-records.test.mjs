@@ -50,7 +50,7 @@ test('a bold Version header is found; a table without a Version column is named'
 test('the Revision History section is found by its name, not by a feature that mentions it', () => {
   const files = {
     'sdd.config.yml': 'process:\n  mode: sustain\n',
-    'docs/spec/technical-spec.md': spec(['1.0']).replace('## 3. API Contracts', '## 3. Revision history export\n\nUsers export a revision history as CSV.\n\n## 3a. API Contracts'),
+    'docs/spec/technical-spec.md': spec(['1.0']).replace('## 3. API Contracts', '## 3. Revision history export\n\nUsers export a revision history as CSV.\n\n## 4. API Contracts'),
     'SPEC_VERSION.md': specVersion('1.0'),
   }
   const r = lint({ files })
