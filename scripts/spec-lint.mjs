@@ -415,13 +415,16 @@ if (!SCAFFOLD) lintProcessMode()
 // "dates are YYYY-MM-DD" passes.
 const PLACEHOLDERS = ['[Product Name]', '[Task Title]', '[Title]', '[Name]', '[Date]', '[x.x]']
 const AFTER_LABEL = String.raw`(?<=\*\*[^*\n]+(?::\*\*|\*\*:)[ \t]*)`
+// A marker alone in a table cell, or right after a **Label:**.
+const inCellOrAfterLabel = (marker) =>
+  new RegExp(`(?<=\\|[ \\t]*)${marker}(?=[ \\t]*\\|)|${AFTER_LABEL}${marker}`, 'g')
 const PLACEHOLDER_RES = [
   ...PLACEHOLDERS.map((p) => ({
     label: p,
     re: new RegExp(`${p.replace(/[.[\]]/g, '\\$&')}(?![(\\[])`, 'g'),
   })),
-  { label: '[name]', re: new RegExp(`${AFTER_LABEL}\\[name\\]`, 'g') },
-  { label: 'YYYY-MM-DD', re: new RegExp(`(?<=\\|[ \\t]*)YYYY-MM-DD(?=[ \\t]*\\|)|${AFTER_LABEL}YYYY-MM-DD`, 'g') },
+  { label: '[name]', re: inCellOrAfterLabel('\\[name\\]') },
+  { label: 'YYYY-MM-DD', re: inCellOrAfterLabel('YYYY-MM-DD') },
 ]
 
 // The document with HTML comments and fenced code blocks replaced by spaces, so line numbers
@@ -515,10 +518,14 @@ const parseVersion = (s) => {
   return VERSION.test(v) ? v : null
 }
 
-// The lines under the first heading matching `re`, up to the next heading.
+// The lines under the first heading whose text (after its #s) matches `re`, up to the next
+// heading.
 function sectionBody(md, re) {
   const lines = md.replace(/\r\n/g, '\n').split('\n')
-  const start = lines.findIndex((l) => /^#{1,6}\s/.test(l) && re.test(l))
+  const start = lines.findIndex((l) => {
+    const h = l.match(/^#{1,6}\s+(.*)$/)
+    return h && re.test(h[1].trim())
+  })
   if (start === -1) return ''
   const end = lines.findIndex((l, i) => i > start && /^#{1,6}\s/.test(l))
   return lines.slice(start + 1, end === -1 ? undefined : end).join('\n')
@@ -536,7 +543,8 @@ function lintVersionRecords() {
     )
   const log = read('SPEC_VERSION.md')
   if (!log) return report('SPEC_VERSION.md is missing')
-  const history = tableRows(sectionBody(spec, /revision history/i), ['version'])
+  // The section itself, not a feature that mentions it ("## 3. Revision history export").
+  const history = tableRows(sectionBody(spec, /^(?:\d+(?:\.\d+)*[.)]?\s+)?revision history$/i), ['version'])
     .map((r) => cellText(r.version))
     .filter(Boolean)
   if (!history.length)
