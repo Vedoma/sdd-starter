@@ -26,11 +26,10 @@ Guidance for the next entry:
 
 - Diff-aware `spec-lint` checks: on a pull request the workflow passes the changed paths as
   `CHANGED_FILES`; local runs leave it unset and those checks are skipped.
-- `spec-lint` blocks merging an ADR that is still `proposed`, an ADR's front-matter `status`
-  must be one of the lifecycle states, and the Decision Registry must agree with it in both
-  directions (a row per file, a file per row). It cannot tell who accepted an ADR, so a status
-  edited by hand passes; the required review is the gate for that. `adr-status` now updates
-  the registry row too, then dispatches `spec-lint` on the PR branch, because its
+- `spec-lint` blocks merging an ADR that is still `proposed`, and an ADR's front-matter
+  `status` must be one of the lifecycle states. It cannot tell who accepted an ADR, so a
+  status edited by hand passes; the required review is the gate for that. `adr-status` now
+  updates the registry row too, then dispatches `spec-lint` on the PR branch, because its
   workflow-token commit does not trigger `pull_request` (other required checks are not
   re-run; see `docs/repo-setup.md` §6). Constitution C4 records the new coverage and stays
   `partial`.
@@ -58,8 +57,9 @@ Guidance for the next entry:
   delivered or that no `SPEC_VERSION.md` Changelog row cites, a PR that archives a change
   without also changing `SPEC_VERSION.md` (the citing row at the Current Version) and the
   living spec, and a PR that deletes a change. Under `sustain`, delivering means archiving: a PR
-  that edits `docs/spec/**` must archive the change it delivers - except a change's scenarios
-  in `docs/spec/behavior/`, which may land earlier together with the active change (C10). A
+  that edits `docs/spec/**` must archive the change it delivers - except a new
+  `docs/spec/behavior/*.feature` file, which may land earlier together with the active change
+  (C10); the workflow passes the added paths as `ADDED_FILES`. A
   merged change id is permanent; renumbering reads as a deletion. A change whose
   every task box is ticked while it is still active warns. The proposal's state machine
   (`Proposed → Accepted → Delivered → Archived`) is spelled out. Constitution C3 records the
@@ -102,6 +102,11 @@ Guidance for the next entry:
   `unenforced` to `partial`. **Migrating:** add `mode:` under `process:` in
   `sdd.config.yml` — `greenfield` while you are still writing the spec, `sustain` if it is
   accepted and you already work through `docs/changes/`. Without it `spec-lint` fails.
+- **Breaking:** the ADR Decision Registry must agree with the ADRs in both directions: each
+  row's Status matches its ADR's front-matter `status` (a superseded row names the
+  successor), and every row has its file. Earlier `adr-status` updated only the front matter,
+  so a project that used `/adr accept` has rows still reading `Proposed`. **Migrating:**
+  before upgrading, set each registry row's Status to its ADR's front-matter `status`.
 
 ### Fixed
 
