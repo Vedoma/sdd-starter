@@ -122,6 +122,12 @@ fixed list, not every bracketed hint the templates carry — `[Primary Persona N
 `[Requirement statement]` and the rest pass the check, so replacing them is on you and the
 reviewer. Fill every template hint when you adopt a document; never leave them for later.
 
+The spec keeps two version records with different jobs: its own Revision History (a row per
+substantive edit, free to advance while `Draft`) and `SPEC_VERSION.md` (the accepted version,
+which moves only on acceptance and amendments). When you amend, bump both in the same change;
+under `sustain`, `spec-lint` fails when they disagree. See `SPEC_VERSION.md` →
+"Two version records".
+
 ## Non-negotiables (see constitution.md for the full list + enforcement)
 
 - The specification is the single source of truth; no code without a spec entry.

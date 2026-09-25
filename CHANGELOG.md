@@ -41,6 +41,17 @@ Guidance for the next entry:
   so prose does not trip it; fences are read as GitHub renders them. Constitution C1 records
   it. A leftover backlog template block now fails
   instead of silently switching the task checks off.
+- The relationship between the spec's Revision History and `SPEC_VERSION.md` is written down
+  (`SPEC_VERSION.md` → "Two version records"): the history may advance while `Draft`;
+  `SPEC_VERSION.md` moves only on acceptance and amendments. `spec-lint` fails a `sustain`
+  project whose two records disagree, whose `SPEC_VERSION.md` is missing, or whose records
+  hold a version it cannot compare (dotted numbers, optionally `v`-prefixed), and warns under
+  `greenfield` once the spec is `Accepted`.
+
+### Changed
+
+- The `technical-spec.md` template starts at version `0.1`, matching `SPEC_VERSION.md`. It
+  said `1.0`, so the starter shipped the very disagreement it now checks for.
 
 ### Changed
 
