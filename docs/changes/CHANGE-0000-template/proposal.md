@@ -1,6 +1,6 @@
 # CHANGE-NNNN: [Title]
 
-**Status:** Proposed  <!-- Proposed | Accepted | Delivered | Archived -->
+**Status:** Proposed  <!-- Proposed -> Accepted -> Delivered -> Archived (see docs/changes/README.md) -->
 **Author:** [name] | **Date:** YYYY-MM-DD
 
 ## Why

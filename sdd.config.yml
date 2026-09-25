@@ -52,8 +52,9 @@ overrides:
 #               normal; a docs/changes/CHANGE-* directory is an error.
 #   sustain     the spec is accepted (post-MVP / brownfield); every change is a delta under
 #               docs/changes/CHANGE-NNNN/. docs/spec/technical-spec.md must declare
-#               **Status:** Accepted, and a PR that edits docs/spec/** without touching a
-#               change directory is an error.
+#               **Status:** Accepted, and a PR that edits docs/spec/** without delivering
+#               a change (archiving it in the same PR) is an error - except a change's
+#               new docs/spec/behavior/*.feature files, which land with the active change.
 # Switch greenfield -> sustain deliberately, in its own PR that edits nothing under
 # docs/spec/, after the PR accepting the spec has merged (docs/changes/README.md). There is
 # no way back: archived changes under greenfield are an error too.
