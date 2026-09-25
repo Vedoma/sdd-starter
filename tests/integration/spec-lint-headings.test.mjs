@@ -21,8 +21,17 @@ const DOCS = [
   'docs/plan/backlog.md',
   'docs/plan/milestones.md',
 ]
-const TEMPLATES = Object.fromEntries(DOCS.map((path) => [path, repoFile(path)]))
-const PRISTINE = Object.values(TEMPLATES).every((md) => /^# .*\[Product Name\]/m.test(md))
+// The repo's own documents, or null where one is gone - an adopter may delete a document their
+// project does not require (design.md without a UI). A missing one means "not pristine".
+const repoDoc = (path) => {
+  try {
+    return repoFile(path)
+  } catch {
+    return null
+  }
+}
+const TEMPLATES = Object.fromEntries(DOCS.map((path) => [path, repoDoc(path)]))
+const PRISTINE = Object.values(TEMPLATES).every((md) => md != null && /^# .*\[Product Name\]/m.test(md))
 const starterOnly = { skip: !PRISTINE && 'the scaffolded documents here are no longer the starter templates' }
 const headingErrors = (out) =>
   out.split('\n').filter((l) => l.startsWith('error') && /canonical|CANONICAL_HEADINGS/.test(l))
