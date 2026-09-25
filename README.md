@@ -72,7 +72,7 @@ block a non-compliant PR rather than trusting an agent to remember the rules. Th
 │   ├── repo-setup.md             ← the GitHub settings the constitution assumes
 │   ├── profiles.md               ← what capabilities/process resolve to
 │   └── ecosystem/                ← OPTIONAL: forge-md interop (delete if unused)
-├── prompts/                      ← tool-agnostic prompt body per phase
+├── prompts/                      ← tool-agnostic prompt body per command
 ├── .claude/commands/             ← Claude Code command wrappers over prompts/
 ├── .cursor/rules/                ← points Cursor at AGENTS.md + constitution
 ├── .github/
