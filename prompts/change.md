@@ -17,7 +17,11 @@ change touches UI.
   `docs/changes/archive/`, zero-padded to four digits - never an issue or pull-request
   number (`docs/changes/README.md` → "Numbering"). Add the change's row to the Change
   Registry there with Status `Proposed`; `spec-lint` fails an unregistered change.
-- Do not edit the living spec directly. The delta folds in only when the change is
+- If the change has user-facing behaviour, write its scenarios in
+  `docs/spec/behavior/*.feature` (tagged `@AC-`, cited from `tasks.md`) before its tasks are
+  implemented, in a pull request that also touches `CHANGE-NNNN/` - the one part of the
+  spec that may land ahead of delivery (constitution C10).
+- Otherwise, do not edit the living spec directly. The delta folds in only when the change is
   delivered: one PR applies it to `docs/spec/**`, adds a `SPEC_VERSION.md` Changelog row
   citing `CHANGE-NNNN` (with both version records bumped), moves the directory to
   `docs/changes/archive/`, and sets its Status to `Archived` in `proposal.md` and the

@@ -47,7 +47,10 @@ holds the project to exactly one:
   directly. A `docs/changes/CHANGE-*` directory is an error.
 - **`sustain`** — this directory's flow. `docs/spec/technical-spec.md` must declare
   `**Status:** Accepted`, and a pull request that edits `docs/spec/**` must deliver a change:
-  move its `CHANGE-NNNN/` directory to `archive/` in the same pull request.
+  move its `CHANGE-NNNN/` directory to `archive/` in the same pull request. The exception is a
+  change's scenarios: behaviour is specified before it is built (constitution C10), so
+  `docs/spec/behavior/**` may change earlier, in a pull request that also works on the active
+  change whose tasks cite them.
 
 Switch `greenfield` → `sustain` deliberately, in its own pull request, after the pull request
 that accepts the spec has merged. There is no way back: archived changes under `greenfield`
@@ -69,6 +72,11 @@ number** across active and archived changes, zero-padded to four digits: `CHANGE
 tracker - GitHub, for one, numbers issues and pull requests from a single sequence - so they
 are neither stable nor collision-free here, and a first change called `CHANGE-0017` implies
 sixteen predecessors that never existed.
+
+An id is permanent once its change has merged: tasks, pull requests and `SPEC_VERSION.md`
+cite it, and renaming the directory reads as deleting the change (`spec-lint` fails it, C8).
+A project that already merged a borrowed id keeps it; the next change takes the next number
+after the highest in use.
 
 ## Change Registry
 

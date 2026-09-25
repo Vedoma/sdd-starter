@@ -13,7 +13,7 @@ const brief = (text) => lint({ files: { 'docs/product/brief.md': `${BRIEF}\n${te
 const flagged = (r, marker) => new RegExp(`brief\\.md: unfilled scaffold placeholders? .*"${marker.replace(/[[\]]/g, '\\$&')}"`).test(r.out)
 
 test("the scaffold's markers fail in a filled-in required document", () => {
-  for (const text of ['Owner: [Name]', '# [Product Name] notes', '**Last Updated:** YYYY-MM-DD', '| 1.0 | YYYY-MM-DD |', '**Author:** [name]'])
+  for (const text of ['Owner: [Name]', '# [Product Name] notes', '**Last Updated:** YYYY-MM-DD', '| 1.0 | YYYY-MM-DD |', '**Author:** [name]', '| Owner | [name] |'])
     assert.equal(brief(text).code, 1, text)
 })
 
@@ -22,6 +22,7 @@ test('prose, links and code are not placeholders', () => {
     'Dates are written YYYY-MM-DD.',
     '**Format** YYYY-MM-DD is required for every date.',
     'Set the [name] field of each record.',
+    '| Owner | the [name] field |',
     'See [Title].\n\n[Title]: https://example.com',
     'Ask [Name] for access.\n\n[Name]: https://example.com/name',
     'See [Title](https://example.com) and `[Name]`.',
