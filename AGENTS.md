@@ -124,6 +124,15 @@ fixed list, not every bracketed hint the templates carry — `[Primary Persona N
 `[Requirement statement]` and the rest pass the check, so replacing them is on you and the
 reviewer. Fill every template hint when you adopt a document; never leave them for later.
 
+When opening a PR non-interactively, read `.github/PULL_REQUEST_TEMPLATE.md` and fill it —
+`gh pr create --body` bypasses GitHub's template injection. `spec-lint` fails a body that
+drops or demotes one of the template's headings or keeps one of its placeholders; it does not
+check that what you wrote is true. The `spec-lint: skip-pr-template - reverts #123` opt-out is
+for pure reverts: its reason must cite the PR or issue, it skips only the template structure
+(the Spec Reference is still required), and it is never a way around filling the template. Bots
+are held to the template too, except the dependency and release bots listed in the workflow's
+`PR_EXEMPT_BOTS`.
+
 The spec keeps two version records with different jobs: its own Revision History (a row per
 substantive edit, free to advance while `Draft`) and `SPEC_VERSION.md` (the accepted version,
 which moves only on acceptance and amendments). When you amend, bump both in the same change;
