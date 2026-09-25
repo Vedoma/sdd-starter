@@ -72,7 +72,9 @@ jobs:
             # --no-renames lists a moved file under both its old and its new path, and
             # core.quotePath=false keeps non-ASCII paths as written instead of "\303\251".
             CHANGED_FILES="$(git -c core.quotePath=false diff --name-only --no-renames "origin/$BASE_REF...HEAD")"
-            export CHANGED_FILES
+            # The paths it adds: a change's new scenario files may land before its delivery.
+            ADDED_FILES="$(git -c core.quotePath=false diff --name-only --no-renames --diff-filter=A "origin/$BASE_REF...HEAD")"
+            export CHANGED_FILES ADDED_FILES
           else
             # Push: there is no pull request, but Actions still sets PR_BODY (to ""), which
             # spec-lint would read as a PR whose Spec Reference was left empty.
