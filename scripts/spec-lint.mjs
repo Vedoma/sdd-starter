@@ -109,12 +109,13 @@ for (const doc of REQUIRED_DOCS) {
 }
 
 // ---- 2. Backlog tasks: Spec Reference + >=2 acceptance criteria (C1, C5) ----------
-// The Spec Reference value of a task block or PR body: its table cell (| **Spec Reference** | … |),
-// else a `Spec Reference: …` line. HTML comments and fenced code are ignored. '' when absent.
-// Tasks and the PR body read it the same way.
+// The Spec Reference value of a task block or PR body: its table cell (| **Spec Reference** | … |,
+// bold or not), else a `Spec Reference: …` line. A cell is read up to its closing pipe - read
+// past it, a blank cell comes back as "|" and passes. HTML comments and fenced code are
+// ignored. '' when absent. Tasks and the PR body read it the same way.
 function specRefValue(text) {
   const t = withoutCommentsAndFences(text)
-  const m = t.match(/\*\*Spec Reference\*\*\s*\|([^|\n]*)/) || t.match(/Spec Reference\**\s*[:|]\s*(.+)/)
+  const m = t.match(/Spec Reference\**\s*\|([^|\n]*)/) || t.match(/Spec Reference\**\s*:\**\s*(.+)/)
   return m ? m[1].trim() : ''
 }
 
@@ -131,8 +132,10 @@ const unfilledRef = (v) =>
 // heading of technical-spec.md or a section that a named change's spec-delta.md touches (a delta
 // may ADD a section the spec does not have yet); a task inside a change counts as naming it
 // (`home`). Each § belongs to the document named last before it: none, technical-spec.md or a
-// file inside a change is checked; any other document (`data-model.md §3`) cannot be resolved
-// and is accepted on presence alone. Returns { problems, resolvable }.
+// change's spec-delta.md is checked; any other document - `data-model.md §3`, or a change's own
+// design.md - cannot be resolved and is accepted on presence alone. A range is `§3-9`, or
+// `§3 – §9` with the second § written out, so `§3 - 2026 Q1` is not one. Returns
+// { problems, resolvable }.
 function resolveSpecRef(ref, home) {
   const problems = []
   let checked = 0
@@ -150,11 +153,11 @@ function resolveSpecRef(ref, home) {
   const docs = [...ref.matchAll(/[\w./-]+\.md\b/g)].map((m) => ({ at: m.index, name: m[0] }))
   const checkable = (at) => {
     const doc = docs.filter((d) => d.at < at).pop()
-    return !doc || /(^|\/)technical-spec\.md$/.test(doc.name) || /change-\d+/i.test(doc.name)
+    return !doc || /(^|\/)technical-spec\.md$/.test(doc.name) || /change-\d+\/(?:.*\/)?spec-delta\.md$/i.test(doc.name)
   }
   const tokens = []
-  for (const m of ref.matchAll(/§\s*([0-9][\w.]*)(?:\s*[-–]\s*§?\s*([0-9][\w.]*))?/g))
-    if (checkable(m.index)) for (const t of [m[1], m[2]]) if (t) tokens.push(t.replace(/\.+$/, ''))
+  for (const m of ref.matchAll(/§\s*([0-9][\w.]*)(?:[-–]([0-9][\w.]*)|\s*[-–]\s*§\s*([0-9][\w.]*))?/g))
+    if (checkable(m.index)) for (const t of [m[1], m[2], m[3]]) if (t) tokens.push(t.replace(/\.+$/, ''))
   if (tokens.length) {
     const headings = (md) => withoutCommentsAndFences(md || '').split('\n').filter((l) => /^#{1,6}\s/.test(l))
     const sections = new Set()

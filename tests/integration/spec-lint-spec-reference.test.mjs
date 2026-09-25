@@ -40,9 +40,12 @@ test('a § that is a heading of technical-spec.md resolves; one that is not fail
 
 test('both ends of a range are checked', () => {
   assert.deepEqual(refErrors(lint({ files: { 'docs/plan/backlog.md': backlog('§3-9', '§3–9', '§1.1 – §1.2') } }).out), [])
-  const r = lint({ files: { 'docs/plan/backlog.md': backlog('§3-12', '§3–13') } })
+  const r = lint({ files: { 'docs/plan/backlog.md': backlog('§3-12', '§3–13', '§1 – §14') } })
   assert.match(r.out, /§12 is not a section/)
   assert.match(r.out, /§13 is not a section/)
+  assert.match(r.out, /§14 is not a section/)
+  // A dash followed by prose is not a range.
+  assert.deepEqual(refErrors(lint({ files: { 'docs/plan/backlog.md': backlog('§3 - 2026 Q1') } }).out), [])
 })
 
 test('a § keeps its own document: another .md later does not switch the check off', () => {
@@ -62,6 +65,9 @@ test('a § after a file inside a change resolves against that change', () => {
   assert.deepEqual(refErrors(ok.out), [])
   const r = lint({ files: { ...files, 'docs/plan/backlog.md': backlog('CHANGE-0001/spec-delta.md §12') } })
   assert.match(r.out, /§12 is not a section of docs\/spec\/technical-spec\.md or CHANGE-0001's spec-delta\.md/)
+  // A change's other documents have their own sections: presence-only, like any other document.
+  const design = lint({ files: { ...files, 'docs/plan/backlog.md': backlog('CHANGE-0001/design.md §3.3') } })
+  assert.deepEqual(refErrors(design.out), [])
 })
 
 test('a CHANGE-NNNN must exist, active or archived', () => {
@@ -95,6 +101,14 @@ test('blank, dash-only and placeholder values are unfilled - tasks and PR body a
   for (const n of [1, 2, 3, 4]) assert.match(r.out, new RegExp(`TASK-00${n} has no filled Spec Reference`))
   for (const body of ['| **Spec Reference** |  |', '| **Spec Reference** | §[section(s) from technical-spec.md — required] |'])
     assert.match(lint({ body }).out, /the PR body has no filled Spec Reference/)
+})
+
+test('a blank or dash cell without bold is unfilled too - the cell ends at its pipe', () => {
+  const plain = BACKLOG + ['|  |', '| — |'].map((cell, i) => `\n### TASK-00${i + 1}: Task\n\n| Field | Value |\n| --- | --- |\n| Spec Reference ${cell}\n\n- [ ] one\n- [ ] two\n`).join('')
+  const r = lint({ files: { 'docs/plan/backlog.md': plain } })
+  for (const n of [1, 2]) assert.match(r.out, new RegExp(`TASK-00${n} has no filled Spec Reference`))
+  for (const body of ['| Spec Reference |  |', '| Spec Reference | — |'])
+    assert.match(lint({ body }).out, /the PR body has no filled Spec Reference/, body)
 })
 
 test('tasks and the PR body accept the same forms: a table cell or a line, [§N] included', () => {

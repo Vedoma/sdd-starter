@@ -58,6 +58,14 @@ test('a spec edit that delivers no change fails, even when it touches an active 
     assert.match(run({ files: active('Accepted'), changed }).out, /edits the living spec .* without delivering a change/)
 })
 
+test("a change's scenarios may land before delivery, but only with the active change", () => {
+  const files = { ...active('Accepted'), 'docs/spec/behavior/login.feature': 'Feature: Login\n' }
+  const ok = run({ files, changed: ['docs/spec/behavior/login.feature', 'docs/changes/CHANGE-0001/tasks.md'] })
+  assert.equal(ok.code, 0, ok.out)
+  for (const changed of [['docs/spec/behavior/login.feature'], ['docs/spec/behavior/login.feature', 'docs/spec/technical-spec.md', 'docs/changes/CHANGE-0001/tasks.md']])
+    assert.match(run({ files, changed }).out, /edits the living spec .* without delivering a change/, changed.join(' '))
+})
+
 test('a Delivered change outside archive/, and an archived change never delivered or never cited, fail', () => {
   assert.match(run({ files: active('Delivered') }).out, /CHANGE-0001 is Delivered but still sits outside docs\/changes\/archive\//)
   const early = { ...archived, 'docs/changes/archive/CHANGE-0001/proposal.md': proposal('Accepted'), 'docs/changes/README.md': registry(['| CHANGE-0001 | A change | Accepted | |']) }
