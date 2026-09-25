@@ -58,7 +58,9 @@ Guidance for the next entry:
   delivered or that no `SPEC_VERSION.md` Changelog row cites, a PR that archives a change
   without also changing `SPEC_VERSION.md` (the citing row at the Current Version) and the
   living spec, and a PR that deletes a change. Under `sustain`, delivering means archiving: a PR
-  that edits `docs/spec/**` must archive the change it delivers. A change whose
+  that edits `docs/spec/**` must archive the change it delivers - except a change's scenarios
+  in `docs/spec/behavior/`, which may land earlier together with the active change (C10). A
+  merged change id is permanent; renumbering reads as a deletion. A change whose
   every task box is ticked while it is still active warns. The proposal's state machine
   (`Proposed → Accepted → Delivered → Archived`) is spelled out. Constitution C3 records the
   mechanics and stays `partial`: whether a folded spec edit matches its delta, and whether a
