@@ -144,7 +144,7 @@ function activeChangeDirs() {
 // before merge. Structural, so it runs in scaffold mode too.
 
 // Every row of every Markdown table in `md` whose header has all of `columns`, as an object
-// keyed by lower-cased header text.
+// keyed by lower-cased header text (emphasis and code marks dropped, so **Status** is status).
 function tableRows(md, columns) {
   const rows = []
   let header = null
@@ -155,7 +155,7 @@ function tableRows(md, columns) {
     }
     const cells = line.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map((c) => c.trim())
     if (!header) {
-      header = cells.map((c) => c.toLowerCase())
+      header = cells.map((c) => c.replace(/[*`]/g, '').trim().toLowerCase())
       continue
     }
     if (cells.every((c) => /^:?-+:?$/.test(c))) continue
@@ -494,6 +494,87 @@ function lintPlaceholders() {
   }
 }
 if (!SCAFFOLD) lintPlaceholders()
+
+// ---- 10. Version records: Revision History and SPEC_VERSION.md agree (C3) ----------
+// Two records, two jobs (SPEC_VERSION.md, "Two version records"): the spec's Revision History
+// logs every substantive edit and may run ahead while the spec is Draft; SPEC_VERSION.md holds
+// the accepted version and moves only on acceptance and amendments. In sustain they move
+// together, so a mismatch is an error. In greenfield it is a warning, and only once the spec
+// says Accepted - a Draft running ahead is the rule working, not drift.
+function compareVersions(a, b) {
+  const x = a.split('.').map(Number)
+  const y = b.split('.').map(Number)
+  for (let i = 0; i < Math.max(x.length, y.length); i++) {
+    const d = (x[i] || 0) - (y[i] || 0)
+    if (d) return d
+  }
+  return 0
+}
+const VERSION = /^\d+(\.\d+)*$/
+const cellText = (s) => (s || '').replace(/[*`]/g, '').trim()
+// A version cell as a dotted number ("v1.2" -> "1.2"), or null when it is something else.
+const parseVersion = (s) => {
+  const v = cellText(s).replace(/^v(?=\d)/i, '')
+  return VERSION.test(v) ? v : null
+}
+
+// The lines under the first heading whose text (after its #s, and without a closing #
+// sequence) matches `re`, up to the next heading.
+function sectionBody(md, re) {
+  const lines = md.replace(/\r\n/g, '\n').split('\n')
+  const start = lines.findIndex((l) => {
+    const h = l.match(/^#{1,6}\s+(.*?)(?:\s+#+)?\s*$/)
+    return h && re.test(h[1])
+  })
+  if (start === -1) return ''
+  const end = lines.findIndex((l, i) => i > start && /^#{1,6}\s/.test(l))
+  return lines.slice(start + 1, end === -1 ? undefined : end).join('\n')
+}
+
+function lintVersionRecords() {
+  const spec = read('docs/spec/technical-spec.md')
+  if (!spec) return // section 1 reports a missing required spec
+  const sustain = cfgValue(read('sdd.config.yml') || '', 'process', 'mode') === 'sustain'
+  if (!sustain && !/^accepted$/i.test(docStatus(spec) || '')) return
+  const report = (msg) =>
+    (sustain ? err : warn)(
+      'C3',
+      `${msg} (${sustain ? 'process.mode is sustain' : 'the spec is Accepted'}, so the spec's Revision History and SPEC_VERSION.md must agree; see SPEC_VERSION.md, "Two version records")`
+    )
+  const log = read('SPEC_VERSION.md')
+  if (!log) return report('SPEC_VERSION.md is missing')
+  // The section itself, not a feature that mentions it ("## 3. Revision history export").
+  const history = tableRows(sectionBody(spec, /^(?:\d+(?:\.\d+)*[.)]?\s+)?revision history$/i), ['version'])
+    .map((r) => cellText(r.version))
+    .filter(Boolean)
+  if (!history.length)
+    return report(
+      'docs/spec/technical-spec.md has no "## Revision History" section (numbered or not) with a Version table, or no rows in it'
+    )
+  const unparsed = history.filter((v) => !parseVersion(v))
+  if (unparsed.length)
+    return report(
+      `docs/spec/technical-spec.md Revision History has ${unparsed.map((v) => `"${v}"`).join(', ')}, which spec-lint cannot compare - write versions as dotted numbers (1.2, or v1.2)`
+    )
+  const newest = history.map(parseVersion).sort(compareVersions).pop()
+  const row = tableRows(log, ['field', 'value']).find((r) => /^spec version$/i.test(cellText(r.field)))
+  if (!row) return report('SPEC_VERSION.md has no "Spec Version" row in its Current Version table')
+  const current = parseVersion(row.value)
+  if (!current)
+    return report(
+      `SPEC_VERSION.md Spec Version is "${cellText(row.value)}", which spec-lint cannot compare - write it as a dotted number (1.2, or v1.2)`
+    )
+  if (compareVersions(newest, current) !== 0)
+    (sustain ? err : warn)(
+      'C3',
+      `docs/spec/technical-spec.md Revision History is at ${newest}, but SPEC_VERSION.md Current Version is ${current} - ${
+        sustain
+          ? 'in sustain mode every amendment bumps both in the same PR'
+          : 'the spec is Accepted, so acceptance should have set both to the accepted version'
+      } (see SPEC_VERSION.md, "Two version records")`
+    )
+}
+if (!SCAFFOLD) lintVersionRecords()
 
 // ---- report ----------------------------------------------------------------------
 if (SCAFFOLD)
