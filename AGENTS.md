@@ -13,9 +13,13 @@ takes precedence over anything here.
 
 ## The SDD lifecycle
 
-This scaffold has two modes.
+This scaffold has two modes, and a project is in exactly one of them.
 
-**Greenfield bootstrap** (new project) - work the phases in order:
+**Pre-flight:** before editing `docs/spec/**`, read `sdd.config.yml → process.mode`. It
+decides whether you edit the spec directly (`greenfield`) or open a change (`sustain`), and
+`spec-lint` fails a project that runs both flows at once.
+
+**Greenfield bootstrap** (new project, `process.mode: greenfield`) - work the phases in order:
 
 | Phase | Command | Produces |
 | --- | --- | --- |
@@ -37,7 +41,8 @@ the feature-level scenarios are what `spec-lint` requires. Product-level end-to-
 **journeys** (`@journey`, authored in Phase 2) sit above the per-capability feature
 scenarios. See [`docs/spec/behavior/`](./docs/spec/behavior/) and [`tests/`](./tests/).
 
-**Change-based sustain** (post-MVP / brownfield) - do not edit accepted specs ad hoc.
+**Change-based sustain** (post-MVP / brownfield, `process.mode: sustain`) - do not edit
+accepted specs ad hoc.
 Every change is a delta: `/change` opens `docs/changes/CHANGE-XXXX/`; on delivery the
 delta folds into the living spec and the change is archived. See
 [`docs/changes/`](./docs/changes/).
@@ -101,9 +106,10 @@ tests/                       # acceptance/ (runs the .feature scenarios), integr
 
 Run `node scripts/spec-lint.mjs` before proposing a commit; each finding names the clause
 it enforces. But **read the `Status` column in `constitution.md` before assuming a rule is
-machine-checked** — C3, C6 and C7 currently name mechanisms that do not exist, and C1's
-Spec Reference check verifies presence, not that the reference resolves. Those clauses
-still bind you; they are simply enforced by you and the reviewer rather than by CI.
+machine-checked** — C6 and C7 currently name mechanisms that do not exist, C3 checks the
+process mode but not the amendment bookkeeping, and C1's Spec Reference check verifies
+presence, not that the reference resolves. Those clauses still bind you; the unchecked parts
+are simply enforced by you and the reviewer rather than by CI.
 
 ## Non-negotiables (see constitution.md for the full list + enforcement)
 

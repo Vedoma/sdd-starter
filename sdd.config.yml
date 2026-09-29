@@ -5,6 +5,9 @@
 # project IS (its shape) or because you chose a planning ceremony - never because of how
 # many people work on it.
 #
+# spec-lint reads this file without a YAML library, so keep it in block style: one
+# `key: value` per line, indented under its section - never `section: { key: value }`.
+#
 # Always required (the methodology's irreducible core):
 #   docs/product/brief.md, docs/spec/technical-spec.md, docs/plan/backlog.md
 
@@ -17,8 +20,10 @@ capabilities:
   #                 scenarios). Default format contract: Gherkin (docs/spec/behavior/gherkin-guidelines.md);
   #                 pluggable - swap the format and its contract if another serves the project better.
 
-# How much planning ceremony you want - gates the two process documents:
+# Which SDD flow is active, and how much planning ceremony you want (gates the two process
+# documents):
 process:
+  mode: greenfield # greenfield | sustain - see "Process mode" below
   prd: false # require docs/product/prd.md (a formal PRD before the spec)
   milestones: false # require docs/plan/milestones.md (a phased roadmap)
 
@@ -40,3 +45,15 @@ overrides:
 #
 # The defaults above are LEAN: a fresh clone only requires the core, so it feels light.
 # Turn a flag to `true` as the project takes shape. Starting points are in docs/profiles.md.
+#
+# --- Process mode (enforced by spec-lint) -------------------------------------------
+# process.mode says which flow the project is in, so no agent has to infer it:
+#   greenfield  bootstrapping the spec (Phases 1-6). Editing docs/spec/** directly is
+#               normal; a docs/changes/CHANGE-* directory is an error.
+#   sustain     the spec is accepted (post-MVP / brownfield); every change is a delta under
+#               docs/changes/CHANGE-NNNN/. docs/spec/technical-spec.md must declare
+#               **Status:** Accepted, and a PR that edits docs/spec/** without touching a
+#               change directory is an error.
+# Switch greenfield -> sustain deliberately, in its own PR that edits nothing under
+# docs/spec/, after the PR accepting the spec has merged (docs/changes/README.md). There is
+# no way back: archived changes under greenfield are an error too.
