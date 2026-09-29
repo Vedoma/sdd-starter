@@ -65,6 +65,17 @@ Guidance for the next entry:
   (`Proposed → Accepted → Delivered → Archived`) is spelled out. Constitution C3 records the
   mechanics and stays `partial`: whether a folded spec edit matches its delta, and whether a
   change that shipped was ever delivered, are review-only.
+- `Spec Reference` values resolve. In backlog tasks, change tasks and the PR body, a `§N` -
+  both ends of a range - must be a numbered heading of `technical-spec.md` (or a section the
+  named change's `spec-delta.md` touches; a change's own tasks name it implicitly), and a
+  change id must be spelled `CHANGE-NNNN` and exist, active or archived. Each `§` belongs to
+  the document named before it, so a `§` after another document (`data-model.md §3`) and a
+  value naming neither form (`N/A`) are still accepted on presence alone, and `spec-lint`
+  prints a note naming each one. Tasks and the PR body read the value the same way (a table
+  cell or a `Spec Reference:` line). Constitution C1 stays `partial`.
+- The `spec-lint` checks added so far are covered by `node --test` fixtures in
+  `tests/integration/` (stock Node, no dependencies), which the `spec-lint` workflow runs
+  before linting.
 
 ### Changed
 
@@ -88,6 +99,9 @@ Guidance for the next entry:
 
 ### Fixed
 
+- `spec-lint` no longer accepts a blank or dash-only `Spec Reference` table cell, in a
+  backlog task or the PR body. Its pattern captured the cell's closing pipe, so a blank cell
+  read as `|` and passed the presence check.
 - The `spec-lint` workflow no longer passes an empty `PR_BODY` on pushes to `main`, which a
   filled-in project would read as a PR with no Spec Reference.
 
