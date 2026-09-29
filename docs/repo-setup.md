@@ -84,6 +84,19 @@ Reading that script from the default branch instead is a small change and is **o
 work**, not something this checklist can configure. Until it lands, treat `/adr accept` on a
 branch you have not reviewed as running code you have not reviewed.
 
+After it commits, `adr-status.yml` dispatches `spec-lint` on the pull request's branch from
+a second job that holds only `actions: write` and runs no repository code. A push made with
+the workflow token does not trigger `pull_request`, and `spec-lint` fails an ADR that is
+still `proposed`, so without that dispatch an accepted ADR's pull request would keep its
+failed pre-acceptance result.
+
+Only `spec-lint` is re-dispatched. If you make other checks required (tests, the a11y gate),
+they show "Expected — Waiting for status" on the bot's commit and block the merge until a
+maintainer pushes to the branch (an empty commit will do) or closes and reopens the pull
+request. Pushing with a personal access token or GitHub App token instead would trigger them,
+but the job above runs the pull request's own copy of `adr-status.mjs`, so it would hand that
+credential to pull-request code. Revisit once the script is read from the default branch.
+
 ## Verifying the setup
 
 Open a throwaway PR that deliberately violates a clause — e.g. add a backlog task with one
