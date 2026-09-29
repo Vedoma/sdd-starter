@@ -47,6 +47,11 @@ Guidance for the next entry:
   project whose two records disagree, whose `SPEC_VERSION.md` is missing, or whose records
   hold a version it cannot compare (dotted numbers, optionally `v`-prefixed), and warns under
   `greenfield` once the spec is `Accepted`.
+- `CHANGE-NNNN` numbering is defined (the next free four-digit number, never a tracker id),
+  and `docs/changes/README.md` gains a Change Registry. `spec-lint` fails a change directory
+  not named `CHANGE-NNNN` (and any other directory under `docs/changes/` besides `archive/`),
+  a change with no registry row or with a row whose Status disagrees with its `proposal.md`,
+  a row whose directory is gone, and a malformed or duplicated registry ID.
 
 ### Changed
 
