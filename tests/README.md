@@ -72,4 +72,6 @@ evidence — it is a mirror.
 They run on stock Node (`node --test`) inside the `spec-lint` workflow, which selects them by
 name so your own tests never run there. They build their own throwaway projects from frozen
 fixtures and read only the tools under test, so filling in your documents or editing the PR
-template cannot break them. Keep them as long as you keep `spec-lint`.
+template cannot break them - except the two that check the starter's own templates against
+`spec-lint`'s list of canonical headings, which skip themselves once your documents are no
+longer those templates. Keep them as long as you keep `spec-lint`.

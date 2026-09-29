@@ -65,6 +65,9 @@ your guesses as fact. In every generated document:
 - Mark anything you inferred with `[INFERRED - CONFIRM]`.
 - Mark any gap you cannot fill with `[OPEN - REQUIRES INPUT]` - never invent a plausible
   answer to make the document look finished.
+- Keep the scaffold's section headings verbatim - same English wording, case and level - even
+  when you write the content in another language; add sections of your own freely.
+  `spec-lint` fails a required document whose canonical heading was renamed, demoted or dropped.
 
 **Ask, don't guess.** If a phase's inputs are missing or contradictory, ask clarifying
 questions before drafting.

@@ -945,10 +945,215 @@ function lintPrTemplate(body) {
 }
 if (PR_BODY != null && !BOT_EXEMPT && !TEMPLATE_OPT_OUT) lintPrTemplate(PR_BODY)
 
+// ---- 14. Canonical section headings of the scaffolded documents (C1) ---------------
+// A document rewritten outside the starter drifts: translated out of English and back, its
+// headings came back in sentence case and "Revision History" became "Change history", and every
+// later starter sync turned into manual reconciliation. A dropped heading can take a governance
+// section with it - design.md's Accessibility section is the one that backs C6.
+//
+// The canonical headings are listed here because adopting a document overwrites its template,
+// leaving nothing else to read them from. In a filled-in required document each must appear at
+// its level with its wording and case. Section numbers are ignored, so sections may be added
+// and renumbered freely; what a section says is never judged.
+//
+// The starter keeps this list honest against its own templates: while the repo is a pristine
+// scaffold, a document that is still its template (its title carries [Product Name]) must have
+// every canonical heading, and each of its own headings must be listed - as canonical, or as one
+// of the illustrations the template ships (`examples`). A template edit that forgets this list
+// fails the starter's CI, so adopters always inherit a list that matches the templates.
+const CANONICAL_HEADINGS = {
+  'docs/product/brief.md': {
+    canonical: [
+      '## Problem Statement',
+      '## Target User',
+      '## Value Proposition',
+      '## Success Outcomes',
+      '## Explicit Out-of-Scope',
+      '## Open Questions',
+    ],
+  },
+  'docs/product/prd.md': {
+    canonical: [
+      '## 1. Objectives & Success Metrics',
+      '## 2. User Personas',
+      '## 3. Functional Requirements',
+      '## 4. Non-Functional Requirements',
+      '## 5. Constraints & Assumptions',
+      '### Constraints',
+      '### Assumptions',
+      '## 6. Dependencies',
+      '## 7. Out of Scope',
+      '## 8. Revision History',
+    ],
+    examples: ['#### User Stories', '#### Acceptance Criteria — US-001', '#### Acceptance Criteria — US-002'],
+  },
+  'docs/spec/technical-spec.md': {
+    canonical: [
+      '## 1. System Overview',
+      '### 1.1 Architecture Diagram',
+      '### 1.2 Technology Stack',
+      '## 2. Component Specifications',
+      '## 3. API Contracts',
+      '### 3.1 Global Conventions',
+      '### 3.2 Endpoint Index',
+      '## 4. Data Model',
+      '### 4.1 Entity Overview',
+      '### 4.2 Key Invariants',
+      '## 5. Security Specification',
+      '## 6. Performance Targets',
+      '## 7. Environment Configuration',
+      '## 8. Third-Party Integrations',
+      '## 9. Open Technical Questions',
+      '## 10. Revision History',
+    ],
+  },
+  'docs/spec/api-contracts.md': {
+    canonical: ['## Global Conventions', '## Revision History'],
+    examples: [
+      '## Authentication Endpoints',
+      '### POST /v1/auth/register',
+      '### POST /v1/auth/login',
+      '## Resource Endpoints',
+      '### GET /v1/resources',
+      '### POST /v1/resources',
+      '### GET /v1/resources/:id',
+      '### PATCH /v1/resources/:id',
+      '### DELETE /v1/resources/:id',
+      '## OpenAPI 3.1 Specification',
+    ],
+  },
+  'docs/spec/data-model.md': {
+    canonical: [
+      '## 1. Entity Relationship Diagram',
+      '## 2. Entity Definitions',
+      '## 3. Relationship Matrix',
+      '## 4. Enum Definitions',
+      '## 5. Soft Delete Strategy',
+      '## 6. Migration Strategy',
+      '## 7. Data Validation Rules',
+      '## 8. Revision History',
+    ],
+  },
+  'docs/design/design.md': {
+    canonical: [
+      '## 1. Design Principles',
+      '## 2. Design Tokens',
+      '### Color',
+      '### Typography',
+      '### Spacing, radius, shadow, motion',
+      '## 3. Primitives / Components',
+      '## 4. Layout & Responsive',
+      '## 5. Accessibility',
+      '## 6. Content & Voice',
+      '## 7. Anti-patterns',
+      '## 8. Design Decisions → ADR',
+    ],
+  },
+  'docs/plan/backlog.md': {
+    canonical: ['## Dependency Graph', '## Backlog Status Summary'],
+    examples: [
+      '## Milestone 0 — Foundation',
+      '### TASK-001: Initialise Repository Structure',
+      '### TASK-002: Configure CI/CD Pipeline',
+      '### TASK-003: Provision Staging Environment',
+    ],
+  },
+  'docs/plan/milestones.md': {
+    canonical: ['## Milestone Summary Table', '## Critical Path', '## Risk Register', '## Decisions Required Before Each Milestone'],
+    examples: ['## Milestone 0 — Foundation *(Always First)*', '### Deliverables'],
+  },
+}
+
+// Section numbers are ignored: "5.", "5" and "5)" all prefix the same heading.
+const withoutNumber = (text) => text.replace(/^\d+(?:\.\d+)*[.)]?\s+/, '')
+// A heading's letters and digits only, lower-cased: equal for "Revision History", "revision
+// history:", "🔒 Revision History" - and for "→" written "->".
+const loose = (text) => withoutNumber(text).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '')
+const words = (text) => new Set(withoutNumber(text).toLowerCase().match(/\p{L}{4,}/gu) || [])
+const quoteAll = (lines) => lines.map((l) => `"${l}"`).join(', ')
+
+// Each heading with the heading it sits under (the nearest earlier one of a lower level).
+const withParents = (headings) =>
+  headings.map((h, i) => ({ ...h, parent: headings.slice(0, i).reverse().find((p) => p.level < h.level) || null }))
+
+// Underlined (setext) headings - valid Markdown, but not what the starter writes.
+const setextHeadings = (md) => {
+  const lines = md.split('\n')
+  return lines.flatMap((l, i) => {
+    const under = (lines[i + 1] || '').match(/^ {0,3}(=+|-+)[ \t]*$/)
+    return under && l.trim() && !/^\s*([#>|*+-]|\d+[.)])/.test(l) ? [{ level: under[1][0] === '=' ? 1 : 2, text: l.trim() }] : []
+  })
+}
+
+function lintCanonicalHeadings() {
+  for (const [path, { canonical, examples = [] }] of Object.entries(CANONICAL_HEADINGS)) {
+    const txt = read(path)
+    if (txt == null) continue
+    const found = headingsOf(withoutCommentsAndFences(txt))
+    if (/^# .*\[Product Name\]/m.test(txt)) {
+      if (!SCAFFOLD) continue // a template left in a real project: section 9 reports its placeholders
+      const listed = new Set([...canonical, ...examples])
+      const unlisted = [...new Set(found.filter((h) => h.level > 1 && !h.text.includes('[')).map(headingLine))].filter(
+        (l) => !listed.has(l)
+      )
+      const gone = canonical.filter((c) => !found.some((h) => headingLine(h) === c))
+      if (unlisted.length)
+        err(
+          'C1',
+          `${path} (still the template) has heading${unlisted.length > 1 ? 's' : ''} ${quoteAll(unlisted)} that CANONICAL_HEADINGS in scripts/spec-lint.mjs does not list - add ${unlisted.length > 1 ? 'each' : 'it'} there as canonical or as an example, so adopters inherit the change (filling this document in? replace [Product Name] in its title first)`
+        )
+      if (gone.length)
+        err(
+          'C1',
+          `${path} (still the template) no longer has canonical heading${gone.length > 1 ? 's' : ''} ${quoteAll(gone)} - update CANONICAL_HEADINGS in scripts/spec-lint.mjs to match the template`
+        )
+      continue
+    }
+    if (SCAFFOLD || !REQUIRED_DOCS.includes(path)) continue
+    // A canonical subsection must sit under its canonical parent, when that parent is there at
+    // all (a missing parent is reported on its own).
+    const same = (a, b) => a.level === b.level && withoutNumber(a.text) === withoutNumber(b.text)
+    const want = withParents(canonical.map((line) => ({ level: line.indexOf(' '), text: line.slice(line.indexOf(' ') + 1) })))
+    const have = withParents(found)
+    const placed = (c, h) =>
+      same(c, h) && (!c.parent || !have.some((x) => same(x, c.parent)) || (h.parent && same(h.parent, c.parent)))
+    const unmatched = have.filter((h) => !want.some((c) => loose(c.text) === loose(h.text)))
+    const setext = setextHeadings(withoutCommentsAndFences(txt))
+    const missing = want
+      .filter((c) => !have.some((h) => placed(c, h)))
+      .map((c) => {
+        const line = `"${headingLine(c)}"`
+        const elsewhere = have.find((h) => same(c, h))
+        if (elsewhere)
+          return `${line} (found under "${elsewhere.parent ? headingLine(elsewhere.parent) : 'the title'}" - keep it under "${headingLine(c.parent)}")`
+        const moved = have.find((h) => withoutNumber(h.text) === withoutNumber(c.text))
+        if (moved) return `${line} (found as "${headingLine(moved)}" - keep its level)`
+        const near = have.find((h) => loose(h.text) === loose(c.text))
+        if (near) return `${line} (found as "${headingLine(near)}" - keep the starter's wording, case and punctuation)`
+        const underlined = setext.find((h) => loose(h.text) === loose(c.text))
+        if (underlined) return `${line} (found as an underlined heading "${underlined.text}" - write it as a # heading)`
+        const mine = words(c.text)
+        const renamed = unmatched
+          .filter((h) => h.level === c.level)
+          .map((h) => ({ h, shared: [...words(h.text)].filter((w) => mine.has(w)).length }))
+          .filter((x) => x.shared)
+          .sort((a, b) => b.shared - a.shared)[0]
+        if (renamed) return `${line} (renamed to "${headingLine(renamed.h)}"? - keep the starter's wording)`
+        return line
+      })
+    if (missing.length)
+      err(
+        'C1',
+        `${path} is missing canonical section heading${missing.length > 1 ? 's' : ''} ${missing.join(', ')} - keep the starter's section headings verbatim (English wording, case and level; section numbers may change) and add your own sections freely`
+      )
+  }
+}
+lintCanonicalHeadings()
+
 // ---- report ----------------------------------------------------------------------
 if (SCAFFOLD)
   console.log(
-    'note    scaffold mode: docs/spec/technical-spec.md is still the template, so project-level checks (mandatory docs, process mode, placeholders, PR Spec Reference) are skipped until it is filled in.'
+    'note    scaffold mode: docs/spec/technical-spec.md is still the template, so project-level checks (mandatory docs, process mode, placeholders, canonical headings, PR body) are skipped until it is filled in.'
   )
 if (presenceOnly.length)
   console.log(
