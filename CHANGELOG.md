@@ -76,6 +76,17 @@ Guidance for the next entry:
 - The `spec-lint` checks added so far are covered by `node --test` fixtures in
   `tests/integration/` (stock Node, no dependencies), which the `spec-lint` workflow runs
   before linting.
+- `spec-lint` enforces the PR template's structure, not just its Spec Reference row. The
+  headings and placeholders are read from `.github/PULL_REQUEST_TEMPLATE.md` at runtime; a
+  body that drops or demotes a heading, quotes the template in a code fence, keeps a
+  placeholder, or is blank fails, naming what is missing. Ticked boxes are not required.
+  Allowlisted dependency and release bots (`PR_EXEMPT_BOTS` in the workflow; `dependabot[bot]`
+  and `renovate[bot]` by default) skip the PR-body checks, and a
+  `spec-lint: skip-pr-template - reverts #123` line skips the structure check only (its reason
+  must cite a #N; the Spec Reference still applies), each with a note. The workflow re-runs on
+  `edited`, so the result follows the current description. Its cases join the `node --test`
+  fixtures in `tests/integration/`, which run against a frozen copy of the template, so an
+  adopter editing theirs cannot turn them red.
 
 ### Changed
 
