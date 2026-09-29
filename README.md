@@ -41,10 +41,16 @@ block a non-compliant PR rather than trusting an agent to remember the rules. Th
 
 - **Greenfield** builds the initial living spec, phase by phase.
 - **Change-based** sustains it: after the spec is accepted you never edit it ad hoc -
-  every change is a delta (`ADDED` / `MODIFIED` / `REMOVED`) that folds into the living
-  spec and is then archived. Archiving keeps an agent's working context small (it reads
-  the active tree, not the history) without losing the audit trail. See
-  [`docs/changes/`](./docs/changes/).
+  every change is a delta (`ADDED` / `MODIFIED` / `REMOVED`) in `docs/changes/CHANGE-NNNN/`,
+  registered in the Change Registry, that folds into the living spec and is then archived.
+  Archiving keeps an agent's working context small (it reads the active tree, not the
+  history) without losing the audit trail. See [`docs/changes/`](./docs/changes/).
+
+A project is in exactly one mode, declared as `process.mode` (`greenfield` | `sustain`) in
+[`sdd.config.yml`](./sdd.config.yml), and `spec-lint` holds it there: no change directories
+under `greenfield`; under `sustain` the spec must be accepted, and it changes only in the
+pull request that delivers a change - folding the delta in, bumping
+[`SPEC_VERSION.md`](./SPEC_VERSION.md) and archiving the change.
 
 ## Repository Structure
 
@@ -84,6 +90,7 @@ block a non-compliant PR rather than trusting an agent to remember the rules. Th
 ├── scripts/spec-lint.mjs         ← the enforcement backbone
 ├── src/                          ← implementation
 ├── tests/                        ← acceptance/ (runs the .feature scenarios), integration/, unit/
+│                                   (integration/spec-lint-*: the scaffold's own tests)
 └── LICENSE                       ← MIT
 ```
 
@@ -92,7 +99,7 @@ block a non-compliant PR rather than trusting an agent to remember the rules. Th
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/1815b82f-70f3-4304-91b3-e53bab8908c0">
   <img src="https://github.com/user-attachments/assets/4f3f3e6c-b0c0-4bec-961d-52266fde0866" alt="The workflow: six phases, one command each">
-</picture
+</picture>
 
 Each phase has a command (Claude Code: [`.claude/commands/`](./.claude/commands/)) backed
 by a tool-agnostic prompt (any agent: [`prompts/`](./prompts/)):
@@ -106,8 +113,12 @@ by a tool-agnostic prompt (any agent: [`prompts/`](./prompts/)):
 | 5 | Planning | `/plan` | `docs/plan/milestones.md`, `docs/plan/backlog.md` |
 | 6 | Implementation | `/implement TASK-XXX` | `src/`, `tests/` |
 
+Outside the phases: `/change` and `/amend` drive change-based mode, and `/pr-review` is the
+review standard for every pull request - the agent drafts the review, a human decides.
+
 Agents draft; humans accept. Every generated document marks inferences
-`[INFERRED - CONFIRM]` and gaps `[OPEN - REQUIRES INPUT]` rather than guessing. See
+`[INFERRED - CONFIRM]` and gaps `[OPEN - REQUIRES INPUT]` rather than guessing, and keeps
+the scaffold's section headings verbatim, even when the content is in another language. See
 [`AGENTS.md`](./AGENTS.md).
 
 ## Behaviour, Specified Before It's Built
@@ -115,7 +126,7 @@ Agents draft; humans accept. Every generated document marks inferences
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/d64888e3-4215-4bb3-8946-b469f90ac0f2">
   <img src="https://github.com/user-attachments/assets/821292b6-02e3-48fb-8de3-e1317054d741" alt="Behaviour, Written First">
-</picture
+</picture>
 
 When a capability has user-facing behaviour (`capabilities.behavior: true`), the scaffold
 captures it as **executable acceptance scenarios authored in Phase 3, before the code** - the
@@ -155,8 +166,8 @@ cites resolves to one.
 
 1. **Clone and rename** this repo.
 2. **Declare your project** in [`sdd.config.yml`](./sdd.config.yml) - set `capabilities`
-   (`ui` / `api` / `data` / `behavior`) and `process` (`prd` / `milestones`); that decides
-   which docs are mandatory.
+   (`ui` / `api` / `data` / `behavior`) and `process` (`prd` / `milestones`), which decide
+   which docs are mandatory, and `process.mode` (`greenfield` for a new project).
 3. **Read [`constitution.md`](./constitution.md)** - the binding rules. Check the `Status`
    column: it says which clauses a machine actually blocks and which are review-only or
    not yet enforced at all. Do not assume a rule is checked because it is written down.
@@ -164,12 +175,13 @@ cites resolves to one.
    checks, branch protection, CODEOWNERS. Until that is done the check runs but nothing
    *blocks* a merge, and C8 is not enforced at all.
 5. **Enable the local hook** (optional): `git config core.hooksPath .githooks`.
-6. **Start at `/brief`** (or, for an existing codebase, write a minimal
-   `docs/spec/technical-spec.md` of what is already true and drive changes through
-   `docs/changes/`).
+6. **Start at `/brief`**. For an existing codebase, write a minimal
+   `docs/spec/technical-spec.md` of what is already true and accept it in one pull request,
+   then switch `process.mode` to `sustain` in a second and drive changes through
+   `docs/changes/` ([`docs/changes/README.md`](./docs/changes/README.md)).
 7. **Work phase by phase** - do not implement ahead of an accepted spec. Every PR fills
-   [`.github/PULL_REQUEST_TEMPLATE.md`](./.github/PULL_REQUEST_TEMPLATE.md); the Spec
-   Reference is mandatory and CI-enforced.
+   [`.github/PULL_REQUEST_TEMPLATE.md`](./.github/PULL_REQUEST_TEMPLATE.md), and CI checks
+   its structure too - `gh pr create --body` skips GitHub's template injection, so copy it.
 
 ## Landing Zone for a forge-md Bundle
 
@@ -189,6 +201,27 @@ forge-md).
 Nothing forces you upstream: this scaffold stands alone. Together they are one pipeline -
 collaborative spec review + a neutral public scaffold + a plain-Markdown handoff - with
 **zero lock-in at every layer**: self-hostable workbench, MIT scaffold, portable Markdown.
+
+## What CI Actually Checks
+
+[`scripts/spec-lint.mjs`](./scripts/spec-lint.mjs) runs on every pull request on stock Node,
+with no dependencies. Once your technical spec is filled in, it fails the PR when:
+
+- a required document is missing, keeps a scaffold placeholder (`[Product Name]`,
+  `YYYY-MM-DD`, ...), or renames, re-cases or drops one of the scaffold's section headings;
+- a task or the PR has no Spec Reference, or one that does not resolve - a `§N` must be a
+  real section of the technical spec, a `CHANGE-NNNN` a real change;
+- the PR body drops a heading of the PR template or keeps one of its placeholders;
+- the process mode is broken: the wrong artifacts for the mode, a spec edited outside a
+  delivered change, the spec's two version records disagreeing, or a change deleted rather
+  than archived;
+- an ADR is still `proposed`, or the decision and change registries disagree with their files.
+
+Each finding names the constitution clause it enforces. `spec-lint` tests itself too:
+`node --test tests/integration/spec-lint-*.test.mjs`, run by the same workflow. What it
+*cannot* check - whether the spec a PR cites really covers the work, whether an ADR's body
+was edited after acceptance - is listed clause by clause in the `Status` column of
+[`constitution.md`](./constitution.md).
 
 ## Key Rules
 
