@@ -6,11 +6,23 @@ name: spec-lint
 
 on:
   pull_request:
+    # `edited` re-runs the PR-body checks when the description changes, so fixing a body turns
+    # the check green and emptying one turns it red.
+    types: [opened, synchronize, reopened, edited]
   push:
     branches: [main]
+  # adr-status.yml dispatches this on a PR branch after committing an /adr transition:
+  # commits pushed with GITHUB_TOKEN do not trigger `pull_request`, so without it the new
+  # head would carry no spec-lint result.
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: Number of the pull request whose branch is being linted
+        required: true
 
 permissions:
   contents: read
+  pull-requests: read
 
 jobs:
   spec-lint:
@@ -22,9 +34,59 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: Test spec-lint
+        # The scaffold's own spec-lint tests (stock node --test). Selected by name, so your
+        # project's tests under tests/ never run here.
+        run: |
+          shopt -s nullglob
+          tests=(tests/*/spec-lint-*.test.mjs)
+          if [ ${#tests[@]} -gt 0 ]; then node --test "${tests[@]}"; fi
+      - name: Resolve the pull request (dispatched runs)
+        if: github.event_name == 'workflow_dispatch'
+        id: dispatched
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ inputs.pr }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          [[ "$PR_NUMBER" =~ ^[0-9]+$ ]] || { echo "::error::input pr must be a pull request number"; exit 1; }
+          gh pr view "$PR_NUMBER" --repo "$REPO" --json body,baseRefName,headRefName,author > "$RUNNER_TEMP/pr.json"
+          head="$(jq -r .headRefName "$RUNNER_TEMP/pr.json")"
+          if [ "$head" != "$REF_NAME" ]; then
+            echo "::error::PR #$PR_NUMBER is on branch $head, but this run is on $REF_NAME"
+            exit 1
+          fi
+          jq -r '.body // ""' "$RUNNER_TEMP/pr.json" > "$RUNNER_TEMP/pr-body.md"
+          echo "base_ref=$(jq -r .baseRefName "$RUNNER_TEMP/pr.json")" >> "$GITHUB_OUTPUT"
+          # gh reports an app author as "app/<name>"; the event payload calls it "<name>[bot]".
+          echo "author_login=$(jq -r 'if .author.is_bot then (.author.login | sub("^app/"; "")) + "[bot]" else .author.login end' "$RUNNER_TEMP/pr.json")" >> "$GITHUB_OUTPUT"
       - name: Run spec-lint
         env:
-          # The PR body is passed via env (never inline) so the Spec Reference
-          # check can run without shell interpolation.
+          # Event data reaches the script via env, never inline ${{ }} in the shell, so a
+          # crafted PR body or branch name cannot inject into it.
           PR_BODY: ${{ github.event.pull_request.body }}
-        run: node scripts/spec-lint.mjs
+          BASE_REF: ${{ github.base_ref || steps.dispatched.outputs.base_ref }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login || steps.dispatched.outputs.author_login }}
+          # Dependency and release bots whose PRs skip the PR-body checks (with a note). Only
+          # these: a coding agent opening PRs as a GitHub App is held to the template like anyone.
+          PR_EXEMPT_BOTS: dependabot[bot] renovate[bot]
+        run: |
+          if [ -f "$RUNNER_TEMP/pr-body.md" ]; then
+            # Dispatched run: the body was fetched above instead of read from the event.
+            PR_BODY="$(cat "$RUNNER_TEMP/pr-body.md")"
+          fi
+          if [ -n "$BASE_REF" ]; then
+            # Pull request: pass the paths it changes so the diff-aware checks run.
+            # --no-renames lists a moved file under both its old and its new path, and
+            # core.quotePath=false keeps non-ASCII paths as written instead of "\303\251".
+            CHANGED_FILES="$(git -c core.quotePath=false diff --name-only --no-renames "origin/$BASE_REF...HEAD")"
+            # The paths it adds: a change's new scenario files may land before its delivery.
+            ADDED_FILES="$(git -c core.quotePath=false diff --name-only --no-renames --diff-filter=A "origin/$BASE_REF...HEAD")"
+            export CHANGED_FILES ADDED_FILES
+          else
+            # Push: there is no pull request, but Actions still sets PR_BODY (to ""), which
+            # spec-lint would read as a PR whose Spec Reference was left empty.
+            unset PR_BODY
+          fi
+          node scripts/spec-lint.mjs

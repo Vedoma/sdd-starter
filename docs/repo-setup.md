@@ -15,12 +15,13 @@ Add this as a required check on the default branch. The name matches the workflo
 
 | Check | Workflow | Enforces |
 | --- | --- | --- |
-| `spec-lint` | [spec-lint.yml](../.github/workflows/spec-lint.yml) | the checked part of C1 and C5 |
+| `spec-lint` | [spec-lint.yml](../.github/workflows/spec-lint.yml) | the checked parts of C1, C3, C4, C5 and C10 |
 
 That is currently the **only** merge-blocking check in the repository. Read the `Status`
 column in [`constitution.md`](../constitution.md) before assuming a clause is covered:
-C3, C4 and C7 name mechanisms that do not exist yet, so requiring this one check does not
-make the constitution enforced — it makes one clause and a half enforced.
+C6 and C7 name mechanisms that do not exist yet, and every clause `spec-lint` touches is
+only `partial`, so requiring this one check does not make the constitution enforced — it
+makes the checked half of a few clauses enforced.
 
 ## 2. Branch protection / ruleset on the default branch
 
@@ -83,6 +84,19 @@ Reading that script from the default branch instead is a small change and is **o
 work**, not something this checklist can configure. Until it lands, treat `/adr accept` on a
 branch you have not reviewed as running code you have not reviewed.
 
+After it commits, `adr-status.yml` dispatches `spec-lint` on the pull request's branch from
+a second job that holds only `actions: write` and runs no repository code. A push made with
+the workflow token does not trigger `pull_request`, and `spec-lint` fails an ADR that is
+still `proposed`, so without that dispatch an accepted ADR's pull request would keep its
+failed pre-acceptance result.
+
+Only `spec-lint` is re-dispatched. If you make other checks required (tests, the a11y gate),
+they show "Expected — Waiting for status" on the bot's commit and block the merge until a
+maintainer pushes to the branch (an empty commit will do) or closes and reopens the pull
+request. Pushing with a personal access token or GitHub App token instead would trigger them,
+but the job above runs the pull request's own copy of `adr-status.mjs`, so it would hand that
+credential to pull-request code. Revisit once the script is read from the default branch.
+
 ## Verifying the setup
 
 Open a throwaway PR that deliberately violates a clause — e.g. add a backlog task with one
@@ -90,5 +104,7 @@ acceptance criterion — and confirm the merge button is blocked, not merely ann
 you have not watched fail is a gate you have not got.
 
 One trap while you do this: spec-lint skips the task checks for the whole of
-`docs/plan/backlog.md` if the string `[Task Title]` appears anywhere in it, and reports
-"passed" either way. Delete the shipped template block before you conclude the gate works.
+`docs/plan/backlog.md` if the string `[Task Title]` appears anywhere in it. In a filled-in
+project the run still fails - on the leftover placeholder, not on your one-criterion task -
+so a red check there does not prove the task gate works. Delete the shipped template block
+before you conclude it does.

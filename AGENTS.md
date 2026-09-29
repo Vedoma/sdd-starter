@@ -13,9 +13,13 @@ takes precedence over anything here.
 
 ## The SDD lifecycle
 
-This scaffold has two modes.
+This scaffold has two modes, and a project is in exactly one of them.
 
-**Greenfield bootstrap** (new project) - work the phases in order:
+**Pre-flight:** before editing `docs/spec/**`, read `sdd.config.yml → process.mode`. It
+decides whether you edit the spec directly (`greenfield`) or open a change (`sustain`), and
+`spec-lint` fails a project that runs both flows at once.
+
+**Greenfield bootstrap** (new project, `process.mode: greenfield`) - work the phases in order:
 
 | Phase | Command | Produces |
 | --- | --- | --- |
@@ -37,8 +41,10 @@ the feature-level scenarios are what `spec-lint` requires. Product-level end-to-
 **journeys** (`@journey`, authored in Phase 2) sit above the per-capability feature
 scenarios. See [`docs/spec/behavior/`](./docs/spec/behavior/) and [`tests/`](./tests/).
 
-**Change-based sustain** (post-MVP / brownfield) - do not edit accepted specs ad hoc.
-Every change is a delta: `/change` opens `docs/changes/CHANGE-XXXX/`; on delivery the
+**Change-based sustain** (post-MVP / brownfield, `process.mode: sustain`) - do not edit
+accepted specs ad hoc.
+Every change is a delta: `/change` opens `docs/changes/CHANGE-NNNN/` (the next free
+number, registered in `docs/changes/README.md`); on delivery the
 delta folds into the living spec and the change is archived. See
 [`docs/changes/`](./docs/changes/).
 
@@ -64,6 +70,9 @@ your guesses as fact. In every generated document:
 - Mark anything you inferred with `[INFERRED - CONFIRM]`.
 - Mark any gap you cannot fill with `[OPEN - REQUIRES INPUT]` - never invent a plausible
   answer to make the document look finished.
+- Keep the scaffold's section headings verbatim - same English wording, case and level - even
+  when you write the content in another language; add sections of your own freely.
+  `spec-lint` fails a required document whose canonical heading was renamed, demoted or dropped.
 
 **Ask, don't guess.** If a phase's inputs are missing or contradictory, ask clarifying
 questions before drafting.
@@ -72,7 +81,10 @@ questions before drafting.
 
 Stop and get explicit human approval before:
 
-- Accepting an ADR (a maintainer runs `/adr accept`; you never self-accept).
+- Accepting an ADR (a maintainer runs `/adr accept` on the open PR; you never self-accept,
+  and `spec-lint` blocks merging it while it is `proposed`). Editing the status to
+  `accepted` yourself passes `spec-lint` — it cannot tell who accepted — and is still a
+  violation.
 - Amending an accepted spec (`/amend` + `SPEC_VERSION.md`).
 - Anything destructive or irreversible (deleting files, force-pushing, rewriting history).
 - Opening or merging a pull request.
@@ -106,9 +118,34 @@ tests/                       # acceptance/ (runs the .feature scenarios), integr
 
 Run `node scripts/spec-lint.mjs` before proposing a commit; each finding names the clause
 it enforces. But **read the `Status` column in `constitution.md` before assuming a rule is
-machine-checked** — C3, C6 and C7 currently name mechanisms that do not exist, and C1's
-Spec Reference check verifies presence, not that the reference resolves. Those clauses
-still bind you; they are simply enforced by you and the reviewer rather than by CI.
+machine-checked** — C6 and C7 currently name mechanisms that do not exist, C3 checks the
+process mode and the mechanics of delivering a change but not that a folded spec edit
+matches its delta, and C1's Spec Reference check resolves `§N` and `CHANGE-NNNN` but accepts
+any other reference on presence alone. Those clauses still bind you; the unchecked parts
+are simply enforced by you and the reviewer rather than by CI.
+
+Once `docs/spec/technical-spec.md` is filled in, `spec-lint` also fails every required
+document, `SPEC_VERSION.md`, and every active change directory that still carries one of the
+scaffold's own markers: `[Product Name]`, `[Task Title]`, `[Title]`, `[Name]`, `[Date]`,
+`[x.x]`, and `[name]` or a `YYYY-MM-DD` date as a table cell or after a `**Label:**`. That is a
+fixed list, not every bracketed hint the templates carry — `[Primary Persona Name]`,
+`[Requirement statement]` and the rest pass the check, so replacing them is on you and the
+reviewer. Fill every template hint when you adopt a document; never leave them for later.
+
+When opening a PR non-interactively, read `.github/PULL_REQUEST_TEMPLATE.md` and fill it —
+`gh pr create --body` bypasses GitHub's template injection. `spec-lint` fails a body that
+drops or demotes one of the template's headings or keeps one of its placeholders; it does not
+check that what you wrote is true. The `spec-lint: skip-pr-template - reverts #123` opt-out is
+for pure reverts: its reason must cite the PR or issue, it skips only the template structure
+(the Spec Reference is still required), and it is never a way around filling the template. Bots
+are held to the template too, except the dependency and release bots listed in the workflow's
+`PR_EXEMPT_BOTS`.
+
+The spec keeps two version records with different jobs: its own Revision History (a row per
+substantive edit, free to advance while `Draft`) and `SPEC_VERSION.md` (the accepted version,
+which moves only on acceptance and amendments). When you amend, bump both in the same change;
+under `sustain`, `spec-lint` fails when they disagree. See `SPEC_VERSION.md` →
+"Two version records".
 
 ## Non-negotiables (see constitution.md for the full list + enforcement)
 
@@ -116,4 +153,5 @@ still bind you; they are simply enforced by you and the reviewer rather than by 
 - Implementing more than the spec asks ("spec overreach") is a defect.
 - ADRs are immutable once accepted - supersede, never edit.
 - Tests are derived from acceptance criteria, not from the implementation.
-- Every PR carries a Spec Reference (enforced by spec-lint).
+- Every PR carries a Spec Reference (enforced by spec-lint, which resolves `§N` and
+  `CHANGE-NNNN`).

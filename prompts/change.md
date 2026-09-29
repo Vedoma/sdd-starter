@@ -4,12 +4,28 @@
 
 **Inputs.** The requested change. The current living spec under `docs/spec/`.
 
-**Task.** Create `docs/changes/CHANGE-XXXX/` with: `proposal.md` (why + scope),
+**Task.** Create `docs/changes/CHANGE-NNNN/` with: `proposal.md` (why + scope),
 `spec-delta.md` (the affected spec sections marked `ADDED` / `MODIFIED` / `REMOVED`),
 `tasks.md` (implementation tasks with acceptance criteria), and `design.md` when the
 change touches UI.
 
 **Rules.**
-- Do not edit the living spec directly. The delta folds in only when the change is
-  delivered and archived (`docs/changes/archive/`), which also bumps `SPEC_VERSION.md`.
+- Read `sdd.config.yml → process.mode` first. Changes exist only in `sustain`; if the
+  project is still `greenfield`, stop and ask whether to switch - `spec-lint` fails a
+  change directory under `greenfield`.
+- `NNNN` is the next free sequential number across `docs/changes/` and
+  `docs/changes/archive/`, zero-padded to four digits - never an issue or pull-request
+  number (`docs/changes/README.md` → "Numbering"). Add the change's row to the Change
+  Registry there with Status `Proposed`; `spec-lint` fails an unregistered change.
+- If the change has user-facing behaviour, write its scenarios as **new**
+  `docs/spec/behavior/*.feature` files (tagged `@AC-`, cited from `tasks.md`) before its tasks
+  are implemented, in a pull request that also touches `CHANGE-NNNN/` - the one part of the
+  spec that may land ahead of delivery (constitution C10). Where the change alters existing
+  behaviour, add the new scenarios in a new file; the old ones change or go at delivery, with
+  the rest of the delta.
+- Otherwise, do not edit the living spec directly. The delta folds in only when the change is
+  delivered: one PR applies it to `docs/spec/**`, adds a `SPEC_VERSION.md` Changelog row
+  citing `CHANGE-NNNN` (with both version records bumped), moves the directory to
+  `docs/changes/archive/`, and sets its Status to `Archived` in `proposal.md` and the
+  registry. `spec-lint` fails a delivery that skips any of those.
 - Keep the delta minimal and reversible. Present as a proposal; stop for review.

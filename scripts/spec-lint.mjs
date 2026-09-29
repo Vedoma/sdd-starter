@@ -6,7 +6,13 @@
 // or the pre-commit hook) and in CI (.github/workflows/spec-lint.yml).
 //
 // Optional env:
-//   PR_BODY   the pull-request body; when set, the Spec Reference check runs.
+//   PR_BODY         the pull-request body; when set, the PR-body checks run.
+//   PR_AUTHOR       the pull request's author login; PR_EXEMPT_BOTS (space-separated logins,
+//                   default dependabot[bot] renovate[bot]) are exempt from the PR-body checks.
+//   CHANGED_FILES   newline-separated repo-relative paths the pull request changes; when
+//                   set, the diff-aware checks run. CI computes it (spec-lint.yml); a local
+//                   run leaves it unset and those checks are skipped.
+//   ADDED_FILES     the subset of CHANGED_FILES the pull request adds (new files only).
 //
 // Each check maps to a constitution.md clause; see the `clause` tag on each finding.
 
@@ -18,6 +24,23 @@ const err = (clause, msg) => errors.push(`[${clause}] ${msg}`)
 const warn = (clause, msg) => warnings.push(`[${clause}] ${msg}`)
 const read = (p) => (existsSync(p) ? readFileSync(p, 'utf8') : null)
 
+// Spec References accepted on presence alone because they name nothing resolvable (C1).
+const presenceOnly = []
+// Informational lines - a skipped check says so instead of passing silently.
+const notes = []
+
+// What the pull request changes, or null when unknown (a local run, a push to main), and which
+// of those paths it adds.
+const pathList = (v) =>
+  v == null
+    ? null
+    : v
+        .split(/\r?\n/)
+        .map((p) => p.trim())
+        .filter(Boolean)
+const CHANGED = pathList(process.env.CHANGED_FILES)
+const ADDED = pathList(process.env.ADDED_FILES) || []
+
 // A pristine scaffold is not a project yet: its spec is still the template. The
 // project-level checks (mandatory documents, PR Spec Reference) only make sense once the
 // repo is a real project, so they stay off in the sdd-starter repo itself and activate the
@@ -27,22 +50,34 @@ const isScaffold = () => (read('docs/spec/technical-spec.md') || '').includes('[
 const SCAFFOLD = isScaffold()
 
 // ---- 1. Capabilities + process: mandatory documents present (C1) ----------------
-// Read a boolean `key` under a top-level `block:` in sdd.config.yml. Hand-rolled
-// because the scaffold ships no YAML dependency. Returns true / false / undefined.
-function cfgFlag(cfg, block, key) {
+// Read the scalar `key` under a top-level `block:` in sdd.config.yml (quotes and a trailing
+// comment stripped). Hand-rolled because the scaffold ships no YAML dependency, so it reads
+// block style only (`block:` then indented `key: value` lines, not `block: { key: value }`)
+// and only the block's own keys, not ones nested deeper. Returns the value as a string, or
+// undefined.
+function cfgValue(cfg, block, key) {
   let inBlock = false
-  for (const raw of cfg.split('\n')) {
-    if (new RegExp(`^${block}:\\s*$`).test(raw)) {
+  let indent = null // the indentation of the block's own keys, set by its first one
+  for (const raw of cfg.split(/\r?\n/)) {
+    if (new RegExp(`^${block}:\\s*(#.*)?$`).test(raw)) {
       inBlock = true
       continue
     }
-    if (inBlock && /^\S/.test(raw)) break // dedent to a new top-level key ends the block
-    if (inBlock) {
-      const m = raw.match(new RegExp(`^\\s+${key}:\\s*(true|false)\\b`))
-      if (m) return m[1] === 'true'
-    }
+    if (!inBlock || !raw.trim() || /^\s*#/.test(raw)) continue
+    if (/^\S/.test(raw)) break // dedent to a new top-level key ends the block
+    const lead = raw.match(/^\s*/)[0].length
+    indent ??= lead
+    if (lead !== indent) continue // a key nested under one of the block's own
+    const m = raw.match(new RegExp(`^\\s+${key}:\\s*['"]?([^\\s#'"]+)`))
+    if (m) return m[1]
   }
   return undefined
+}
+
+// A boolean `key` under `block:`. Returns true / false / undefined.
+function cfgFlag(cfg, block, key) {
+  const v = cfgValue(cfg, block, key)
+  return v === 'true' ? true : v === 'false' ? false : undefined
 }
 
 function requiredDocs() {
@@ -77,32 +112,110 @@ function requiredDocs() {
   }
   return [...req]
 }
-if (!SCAFFOLD)
-  for (const doc of requiredDocs()) {
-    if (!existsSync(doc)) err('C1', `required document missing (per sdd.config.yml): ${doc}`)
-  }
+const REQUIRED_DOCS = SCAFFOLD ? [] : requiredDocs()
+for (const doc of REQUIRED_DOCS) {
+  if (!existsSync(doc)) err('C1', `required document missing (per sdd.config.yml): ${doc}`)
+}
 
 // ---- 2. Backlog tasks: Spec Reference + >=2 acceptance criteria (C1, C5) ----------
-function lintTaskFile(path) {
+// The Spec Reference value of a task block or PR body: its table cell (| **Spec Reference** | … |,
+// bold or not), else a `Spec Reference: …` line. A cell is read up to its closing pipe - read
+// past it, a blank cell comes back as "|" and passes. HTML comments and fenced code are
+// ignored. '' when absent. Tasks and the PR body read it the same way.
+function specRefValue(text) {
+  const t = withoutCommentsAndFences(text)
+  const m = t.match(/Spec Reference\**\s*\|([^|\n]*)/) || t.match(/Spec Reference\**\s*:\**\s*(.+)/)
+  return m ? m[1].trim() : ''
+}
+
+// A Spec Reference that is blank, dash-only, or still a template placeholder: "section(s)
+// from …", or a bracket that is neither a link nor wrapping a § reference (`§[x.x]`, `[TBD]`).
+const unfilledRef = (v) =>
+  !v ||
+  /^[-—\s]*$/.test(v) ||
+  /section\(s\) from/i.test(v) ||
+  /\[(?!§)/.test(v.replace(/\[[^\]\n]*\]\([^)\n]*\)/g, ''))
+
+// Resolve a filled Spec Reference. A `CHANGE-NNNN` must be spelled that way and be a change
+// directory, active or archived. A `§N` - or both ends of a range `§N-M` - must be a numbered
+// heading of technical-spec.md or a section that a named change's spec-delta.md touches (a delta
+// may ADD a section the spec does not have yet); a task inside a change counts as naming it
+// (`home`). Each § belongs to the document named last before it: none, technical-spec.md or a
+// change's spec-delta.md is checked; any other document - `data-model.md §3`, or a change's own
+// design.md - cannot be resolved and is accepted on presence alone. A range is `§3-9`, or
+// `§3 – §9` with the second § written out, so `§3 - 2026 Q1` is not one. Returns
+// { problems, resolvable }.
+function resolveSpecRef(ref, home) {
+  const problems = []
+  let checked = 0
+  const changes = home ? [home] : []
+  for (const [raw] of ref.matchAll(/\bchange-\d+\b/gi)) {
+    if (!/^CHANGE-\d{4}$/.test(raw)) {
+      problems.push(`names "${raw}" - a change id is CHANGE-NNNN, four digits (docs/changes/README.md, "Numbering")`)
+      continue
+    }
+    checked++
+    if (!existsSync(`docs/changes/${raw}`) && !existsSync(`docs/changes/archive/${raw}`))
+      problems.push(`names ${raw}, but neither docs/changes/${raw} nor docs/changes/archive/${raw} exists`)
+    else if (!changes.includes(raw)) changes.push(raw)
+  }
+  const docs = [...ref.matchAll(/[\w./-]+\.md\b/g)].map((m) => ({ at: m.index, name: m[0] }))
+  const checkable = (at) => {
+    const doc = docs.filter((d) => d.at < at).pop()
+    return !doc || /(^|\/)technical-spec\.md$/.test(doc.name) || /change-\d+\/(?:.*\/)?spec-delta\.md$/i.test(doc.name)
+  }
+  const tokens = []
+  for (const m of ref.matchAll(/§\s*([0-9][\w.]*)(?:[-–]([0-9][\w.]*)|\s*[-–]\s*§\s*([0-9][\w.]*))?/g))
+    if (checkable(m.index)) for (const t of [m[1], m[2], m[3]]) if (t) tokens.push(t.replace(/\.+$/, ''))
+  if (tokens.length) {
+    const headings = (md) => withoutCommentsAndFences(md || '').split('\n').filter((l) => /^#{1,6}\s/.test(l))
+    const sections = new Set()
+    for (const h of headings(read('docs/spec/technical-spec.md'))) {
+      const m = h.match(/^#{1,6}\s+[*_]*§?\s*(\d+(?:\.\d+)*)\.?[*_]*(?=\s|$)/)
+      if (m) sections.add(m[1])
+    }
+    for (const id of changes) {
+      const delta = read(`docs/changes/${id}/spec-delta.md`) ?? read(`docs/changes/archive/${id}/spec-delta.md`)
+      for (const h of headings(delta)) for (const m of h.matchAll(/§\s*(\d+(?:\.\d+)*)/g)) sections.add(m[1])
+    }
+    const where = ['docs/spec/technical-spec.md', ...changes.map((id) => `${id}'s spec-delta.md`)].join(' or ')
+    for (const t of tokens) {
+      checked++
+      if (!/^\d+(\.\d+)*$/.test(t)) problems.push(`§${t} is not a section number`)
+      else if (!sections.has(t)) problems.push(`§${t} is not a section of ${where}`)
+    }
+  }
+  return { problems, resolvable: checked > 0 }
+}
+
+function lintTaskFile(path, home) {
   const txt = read(path)
   if (!txt) return
-  // Skip an unedited scaffold template - checks activate once it is filled in.
+  // Skip an unedited scaffold template - checks activate once it is filled in. In a real
+  // project the file does not pass silently: section 9 fails it for those placeholders.
   if (txt.includes('[Product Name]') || txt.includes('[Task Title]')) return
   // Split into TASK blocks by the "### TASK-" heading.
   const blocks = txt.split(/^### /m).filter((b) => /^TASK-/.test(b))
   for (const b of blocks) {
     const id = (b.match(/^(TASK-[\w-]+)/) || [])[1] || '(unnamed task)'
-    const specRef = b.match(/\*\*Spec Reference\*\*\s*\|\s*(.+)/) || b.match(/Spec Reference[:|]\s*(.+)/)
-    const refVal = specRef ? specRef[1].trim() : ''
-    if (!refVal || /^[-—\s]*$/.test(refVal) || /section\(s\) from/i.test(refVal) || refVal.includes('[')) {
+    const refVal = specRefValue(b)
+    if (unfilledRef(refVal)) {
       err('C1', `${path}: ${id} has no filled Spec Reference`)
+    } else if (!SCAFFOLD) {
+      // Project-level: resolving against a technical-spec.md that is still the template means nothing.
+      const { problems, resolvable } = resolveSpecRef(refVal, home)
+      for (const p of problems) err('C1', `${path}: ${id} Spec Reference ${p}`)
+      if (!resolvable) presenceOnly.push(`${path} ${id}`)
     }
     const acCount = (b.match(/^\s*-\s*\[[ x]\]/gm) || []).length
     if (acCount < 2) err('C5', `${path}: ${id} has ${acCount} acceptance criteria (need >=2)`)
   }
 }
 lintTaskFile('docs/plan/backlog.md')
-for (const dir of activeChangeDirs()) lintTaskFile(`${dir}/tasks.md`)
+for (const dir of activeChangeDirs()) {
+  const id = dir.split('/').pop()
+  lintTaskFile(`${dir}/tasks.md`, /^CHANGE-\d{4}$/.test(id) ? id : undefined)
+}
 
 function activeChangeDirs() {
   const base = 'docs/changes'
@@ -112,28 +225,144 @@ function activeChangeDirs() {
     .map((d) => `${base}/${d.name}`)
 }
 
-// ---- 3. ADR index consistency: files <-> README registry (C4, C8) ----------------
-function lintAdrIndex() {
+// ---- 3. ADR registry: files <-> README rows agree; no ADR merges proposed (C4, C8) --
+// The Decision Registry is what people read; the front matter is what adr-status.yml writes.
+// A row that merely exists can say anything, so every ADR needs a row whose Status matches its
+// front-matter status, and every row needs its file (ADRs are never deleted). On a PR, no ADR
+// the PR touches may still be `proposed`: acceptance happens on the open PR (/adr accept),
+// before merge. Structural, so it runs in scaffold mode too.
+
+// Every row of every Markdown table in `md` whose header has all of `columns`, as an object
+// keyed by lower-cased header text (emphasis and code marks dropped, so **Status** is status).
+function tableRows(md, columns) {
+  const rows = []
+  let header = null
+  for (const line of md.replace(/\r\n/g, '\n').split('\n')) {
+    if (!line.trim().startsWith('|')) {
+      header = null
+      continue
+    }
+    const cells = line.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map((c) => c.trim())
+    if (!header) {
+      header = cells.map((c) => c.replace(/[*`]/g, '').trim().toLowerCase())
+      continue
+    }
+    if (cells.every((c) => /^:?-+:?$/.test(c))) continue
+    if (columns.every((c) => header.includes(c)))
+      rows.push(Object.fromEntries(header.map((h, i) => [h, cells[i] ?? ''])))
+  }
+  return rows
+}
+
+// The front-matter `status` of an ADR, or null.
+function adrStatus(txt) {
+  const fm = (txt || '').replace(/\r\n/g, '\n').match(/^---\n([\s\S]*?)\n---/)
+  const m = fm && fm[1].match(/^status:\s*['"]?([^'"\n]+?)['"]?\s*$/m)
+  return m ? m[1].trim() : null
+}
+
+// The lifecycle states of ADR-0000-template.md; `superseded` also names its successor.
+const ADR_STATES = ['proposed', 'accepted', 'rejected', 'deprecated', 'superseded']
+
+// "superseded by ADR-0007" / "**Accepted**" -> { state: 'superseded', by: 'ADR-0007' }
+function adrState(text) {
+  return {
+    state: (text.toLowerCase().match(/[a-z]+/) || [''])[0],
+    by: (text.match(/ADR-\d{4}/i) || [''])[0].toUpperCase(),
+  }
+}
+
+function lintAdrRegistry() {
   const dir = 'docs/adr'
   if (!existsSync(dir)) return
-  const readme = read(`${dir}/README.md`) || ''
+  const rows = tableRows(read(`${dir}/README.md`) || '', ['id', 'status'])
   const files = readdirSync(dir).filter(
     (f) => /^ADR-\d{4}-.*\.md$/.test(f) && f !== 'ADR-0000-template.md'
   )
   for (const f of files) {
     const id = f.match(/^(ADR-\d{4})/)[1]
-    if (!readme.includes(id)) err('C4', `docs/adr/README.md is missing a registry row for ${id} (${f})`)
+    const row = rows.find((r) => new RegExp(`\\b${id}\\b`).test(r.id))
+    if (!row) {
+      err('C4', `docs/adr/README.md is missing a registry row for ${id} (${f}) - the row's ID cell must say ${id}`)
+      continue
+    }
+    const status = adrStatus(read(`${dir}/${f}`))
+    if (status === null) {
+      err('C4', `${dir}/${f} has no front-matter status - the registry check and the merge gate read it from there (see ADR-0000-template.md)`)
+      continue
+    }
+    const file = adrState(status)
+    if (!ADR_STATES.includes(file.state) || (file.state === 'superseded') !== Boolean(file.by)) {
+      err(
+        'C4',
+        `${dir}/${f} has status '${status}' - expected ${ADR_STATES.slice(0, -1).join(', ')} or 'superseded by ADR-NNNN'`
+      )
+      continue
+    }
+    const listed = adrState(row.status)
+    if (listed.state === 'superseded' && !listed.by) listed.by = adrState(row['superseded by'] || '').by
+    if (file.state !== listed.state || file.by !== listed.by)
+      err(
+        'C4',
+        `docs/adr/README.md lists ${id} as "${listed.by ? `${listed.state} by ${listed.by}` : row.status}", but ${f} front matter says "${status}" - update the registry row (the /adr commands keep it in step)`
+      )
+  }
+  for (const r of rows) {
+    const id = (r.id.match(/ADR-\d{4}/) || [])[0]
+    if (id && id !== 'ADR-0000' && !files.some((f) => f.startsWith(`${id}-`)))
+      err('C4', `docs/adr/README.md lists ${id}, but no docs/adr/${id}-*.md exists - ADRs are never deleted; restore the file`)
+  }
+  for (const p of CHANGED || []) {
+    if (!/^docs\/adr\/ADR-\d{4}-.*\.md$/.test(p) || p.endsWith('/ADR-0000-template.md') || !existsSync(p)) continue
+    const status = adrStatus(read(p))
+    if (status !== null && adrState(status).state === 'proposed')
+      err(
+        'C4',
+        `${p} is still status: 'proposed' - an ADR is accepted or rejected on its open PR, before merge: a maintainer comments /adr accept (or /adr reject "<reason>"); see docs/adr/README.md`
+      )
   }
 }
-lintAdrIndex()
+lintAdrRegistry()
 
 // ---- 4. PR carries a filled Spec Reference (C1) -----------------------------------
-if (!SCAFFOLD && process.env.PR_BODY != null) {
-  const body = process.env.PR_BODY
-  const m = body.match(/\*\*Spec Reference\*\*\s*\|\s*(.+)/)
-  const val = m ? m[1].trim() : ''
-  if (!val || /section\(s\) from technical-spec/i.test(val) || val === '§[section(s) from technical-spec.md — required]') {
+// The PR-body checks (this one and section 13) read PR_BODY, which CI sets on pull requests
+// only. Two narrow exemptions, each printed as a note - never a silent pass:
+// - A dependency or release bot on an explicit allowlist (PR_EXEMPT_BOTS, set in the workflow;
+//   dependabot[bot] and renovate[bot] by default) skips both checks. Not every bot: coding
+//   agents open pull requests as GitHub Apps too, and they are who these checks are for.
+// - A visible line "spec-lint: skip-pr-template - <reason>" whose reason cites the pull request
+//   or issue it concerns (a pure revert: "reverts #123") skips the template-structure check only.
+//   The Spec Reference is still required. An opt-out whose reason cites no #N is an error; one
+//   inside an HTML comment or code fence does not count.
+const PR_BODY = SCAFFOLD ? null : (process.env.PR_BODY ?? null)
+const EXEMPT_BOTS = (process.env.PR_EXEMPT_BOTS ?? 'dependabot[bot] renovate[bot]').split(/[\s,]+/).filter(Boolean)
+const PR_AUTHOR = process.env.PR_AUTHOR || ''
+const BOT_EXEMPT = PR_BODY != null && EXEMPT_BOTS.includes(PR_AUTHOR)
+if (BOT_EXEMPT)
+  notes.push(`PR body checks (Spec Reference, template structure) skipped - ${PR_AUTHOR} is on the PR_EXEMPT_BOTS allowlist`)
+function templateOptOut(body) {
+  const m = withoutCommentsAndFences(body).match(/^[ \t]*spec-lint:[ \t]*skip-pr-template\b[ \t]*[-—:]?[ \t]*(.*)$/im)
+  if (!m) return false
+  const reason = m[1].trim()
+  if (!/#\d+/.test(reason))
+    err(
+      'C1',
+      `the PR body opts out of the PR template check ("spec-lint: skip-pr-template") without a reason citing the pull request or issue it concerns - write e.g. "spec-lint: skip-pr-template - reverts #123"`
+    )
+  else notes.push(`PR template structure not checked - the PR body opts out: "${reason}" (its Spec Reference is still checked)`)
+  return true
+}
+const TEMPLATE_OPT_OUT = PR_BODY != null && !BOT_EXEMPT && templateOptOut(PR_BODY)
+
+// A blank body is reported once, by section 13.
+if (PR_BODY != null && !BOT_EXEMPT && PR_BODY.trim() !== '') {
+  const val = specRefValue(PR_BODY)
+  if (unfilledRef(val)) {
     err('C1', 'the PR body has no filled Spec Reference (see the PR template)')
+  } else {
+    const { problems, resolvable } = resolveSpecRef(val)
+    for (const p of problems) err('C1', `the PR body's Spec Reference ${p}`)
+    if (!resolvable) presenceOnly.push('PR body')
   }
 }
 
@@ -230,11 +459,707 @@ function lintBehaviourCoverage() {
 }
 if (!SCAFFOLD) lintBehaviourCoverage()
 
+// ---- 8. Process mode: one SDD flow at a time (C3) --------------------------------
+// sdd.config.yml -> process.mode declares which flow the project is in, so no agent has to
+// guess. greenfield bootstraps the spec and edits docs/spec/** directly; sustain changes the
+// accepted spec only through docs/changes/CHANGE-NNNN deltas. Running both at once is how an
+// accepted spec gets edited silently, so each mode rejects the other's artifacts.
+const MODES = ['greenfield', 'sustain']
+// A path inside an archived change: what a delivering PR adds (section 12). And one inside an
+// active change.
+const ARCHIVED_CHANGE_PATH = /^docs\/changes\/archive\/CHANGE-\d{4}\//
+const ACTIVE_CHANGE_PATH = /^docs\/changes\/CHANGE-\d{4}\//
+
+// Change directories: active (docs/changes/) and delivered (docs/changes/archive/). The
+// shipped template is not a change.
+function changeDirs() {
+  const list = (base, archived) =>
+    existsSync(base)
+      ? readdirSync(base, { withFileTypes: true })
+          .filter((d) => d.isDirectory() && d.name.startsWith('CHANGE-') && d.name !== 'CHANGE-0000-template')
+          .map((d) => ({ name: d.name, path: `${base}/${d.name}`, archived }))
+      : []
+  return [...list('docs/changes', false), ...list('docs/changes/archive', true)]
+}
+
+// The first `**Status:** <word>` in a document - its header block - e.g. "Draft".
+const docStatus = (txt) => ((txt || '').match(/\*\*Status:\*\*\s*([A-Za-z]+)/) || [])[1]
+
+function lintProcessMode() {
+  const cfg = read('sdd.config.yml')
+  if (!cfg) return // section 1 already warns that the config is missing
+  const mode = cfgValue(cfg, 'process', 'mode')
+  if (!MODES.includes(mode)) {
+    err(
+      'C3',
+      mode === undefined
+        ? 'sdd.config.yml does not declare process.mode - set greenfield (bootstrapping the spec) or sustain (the spec is accepted; every change is a docs/changes/ delta)'
+        : `sdd.config.yml process.mode is "${mode}" - expected greenfield or sustain`
+    )
+    return
+  }
+  if (mode === 'greenfield') {
+    for (const c of changeDirs())
+      err(
+        'C3',
+        c.archived
+          ? `${c.path} is an archived change but process.mode is greenfield - archived changes mean this project already runs change-based; set process.mode: sustain`
+          : `${c.path} exists but process.mode is greenfield - change-based mode is not active; either set process.mode: sustain or remove the change directory`
+      )
+    return
+  }
+  const status = docStatus(read('docs/spec/technical-spec.md'))
+  if (!/^accepted$/i.test(status || ''))
+    err(
+      'C3',
+      `process.mode is sustain but docs/spec/technical-spec.md declares **Status:** ${status || '(none)'} - sustain begins once the spec is accepted; accept it, or return to process.mode: greenfield`
+    )
+  if (CHANGED) {
+    // In sustain the spec changes only when a change is delivered, and delivering a change
+    // archives it in the same PR (section 12). Touching an active change is not enough, and a
+    // deleted path does not count: removing some other change does not deliver one. The one
+    // exception is a change's new scenarios: behaviour is specified before it is built (C10), so
+    // a *.feature file the PR adds under docs/spec/behavior/ may land ahead of delivery, in a PR
+    // that also works on an active change. Editing or deleting an accepted scenario, or any other
+    // file there, still waits for delivery like the rest of the spec.
+    const delivers = CHANGED.some((p) => ARCHIVED_CHANGE_PATH.test(p) && existsSync(p))
+    const withChange = CHANGED.some((p) => ACTIVE_CHANGE_PATH.test(p) && existsSync(p))
+    const newScenario = (p) => /^docs\/spec\/behavior\/.+\.feature$/.test(p) && ADDED.includes(p)
+    const specEdits = CHANGED.filter((p) => p.startsWith('docs/spec/') && !(withChange && newScenario(p)))
+    if (specEdits.length && !delivers) {
+      const shown = specEdits.slice(0, 3).join(', ') + (specEdits.length > 3 ? `, +${specEdits.length - 3} more` : '')
+      err(
+        'C3',
+        `this PR edits the living spec (${shown}) without delivering a change - in sustain mode docs/spec/** changes only in the PR that folds a change's delta in and moves it to docs/changes/archive/ (docs/changes/README.md, "Deliver"); only a new scenario file (docs/spec/behavior/*.feature, added by this PR) may land earlier, together with its active change`
+      )
+    }
+  }
+}
+if (!SCAFFOLD) lintProcessMode()
+
+// ---- 9. Adoption: no unfilled scaffold placeholders in governance documents (C1) ----
+// A governance document still carrying template markers - a spec owned by "[Name]", a version
+// log dated "YYYY-MM-DD" - was never adopted. Scans the documents sdd.config.yml requires,
+// SPEC_VERSION.md, and active change directories for the scaffold's own markers - a fixed
+// list, not every bracketed hint a template carries. Precision over recall: HTML comments,
+// fenced/inline code and link reference definitions are blanked first (keeping line numbers);
+// a bracket marker followed by ( or [, or defined as a link reference, is a link; and the
+// date and `[name]` markers count only as a table cell or after a **Label:**, so prose such as
+// "dates are YYYY-MM-DD" passes.
+const PLACEHOLDERS = ['[Product Name]', '[Task Title]', '[Title]', '[Name]', '[Date]', '[x.x]']
+const AFTER_LABEL = String.raw`(?<=\*\*[^*\n]+(?::\*\*|\*\*:)[ \t]*)`
+// A marker alone in a table cell, or right after a **Label:**.
+const inCellOrAfterLabel = (marker) =>
+  new RegExp(`(?<=\\|[ \\t]*)${marker}(?=[ \\t]*\\|)|${AFTER_LABEL}${marker}`, 'g')
+const PLACEHOLDER_RES = [
+  ...PLACEHOLDERS.map((p) => ({
+    label: p,
+    re: new RegExp(`${p.replace(/[.[\]]/g, '\\$&')}(?![(\\[])`, 'g'),
+  })),
+  { label: '[name]', re: inCellOrAfterLabel('\\[name\\]') },
+  { label: 'YYYY-MM-DD', re: inCellOrAfterLabel('YYYY-MM-DD') },
+]
+
+// The document with HTML comments and fenced code blocks replaced by spaces, so line numbers
+// still hold. Fences follow CommonMark closely enough for prose checks: a run of 3+ backticks
+// or tildes opens one (at any indentation, so fences in list items count), only a run of the
+// same character at least as long closes it, and an unclosed fence runs to the end of the
+// document - which is how GitHub renders it.
+function withoutCommentsAndFences(md) {
+  const blank = (s) => s.replace(/[^\n]/g, ' ')
+  let fence = null
+  const lines = md.replace(/\r\n/g, '\n').split('\n').map((line) => {
+    if (fence) {
+      const close = line.match(/^\s*(`{3,}|~{3,})\s*$/)
+      if (close && close[1][0] === fence[0] && close[1].length >= fence.length) fence = null
+      return blank(line)
+    }
+    const open = line.match(/^\s*(`{3,}|~{3,})(.*)$/)
+    if (open && !(open[1][0] === '`' && open[2].includes('`'))) {
+      fence = open[1]
+      return blank(line)
+    }
+    return line
+  })
+  return lines.join('\n').replace(/<!--[\s\S]*?-->/g, blank)
+}
+
+// withoutCommentsAndFences, and inline code and link reference definitions blanked too.
+function proseOnly(md) {
+  const blank = (s) => s.replace(/[^\n]/g, ' ')
+  return withoutCommentsAndFences(md)
+    .replace(/`[^`\n]*`/g, blank)
+    .replace(/^ {0,3}\[[^\]\n]+\]:[ \t]*\S.*$/gm, blank)
+}
+
+// The labels a document defines as link references (`[label]: url`), lower-cased.
+const linkLabels = (md) =>
+  new Set([...withoutCommentsAndFences(md).matchAll(/^ {0,3}\[([^\]\n]+)\]:[ \t]*\S/gm)].map((m) => m[1].toLowerCase()))
+
+function lintPlaceholders() {
+  const docs = new Set([...REQUIRED_DOCS, 'SPEC_VERSION.md'])
+  for (const c of changeDirs().filter((c) => !c.archived))
+    for (const f of readdirSync(c.path)) if (f.endsWith('.md')) docs.add(`${c.path}/${f}`)
+  for (const path of docs) {
+    const txt = read(path)
+    if (!txt) continue
+    const prose = proseOnly(txt)
+    const links = linkLabels(txt)
+    const found = new Map() // label -> { first: index, lines: Set }
+    let total = 0
+    for (const { label, re } of PLACEHOLDER_RES)
+      for (const m of prose.matchAll(re)) {
+        if (label.startsWith('[') && links.has(label.slice(1, -1).toLowerCase())) continue // a shortcut reference link
+        const hit = found.get(label) || { first: m.index, lines: new Set() }
+        hit.lines.add(prose.slice(0, m.index).split('\n').length)
+        found.set(label, hit)
+        total++
+      }
+    if (!total) continue
+    const list = [...found]
+      .sort((a, b) => a[1].first - b[1].first)
+      .map(([label, { lines }]) => `"${label}" (line${lines.size > 1 ? 's' : ''} ${[...lines].join(', ')})`)
+      .join(', ')
+    err(
+      'C1',
+      `${path}: unfilled scaffold placeholder${total > 1 ? 's' : ''} ${list} - fill them in; a governance document still carrying template markers was never adopted`
+    )
+  }
+}
+if (!SCAFFOLD) lintPlaceholders()
+
+// ---- 10. Version records: Revision History and SPEC_VERSION.md agree (C3) ----------
+// Two records, two jobs (SPEC_VERSION.md, "Two version records"): the spec's Revision History
+// logs every substantive edit and may run ahead while the spec is Draft; SPEC_VERSION.md holds
+// the accepted version and moves only on acceptance and amendments. In sustain they move
+// together, so a mismatch is an error. In greenfield it is a warning, and only once the spec
+// says Accepted - a Draft running ahead is the rule working, not drift.
+function compareVersions(a, b) {
+  const x = a.split('.').map(Number)
+  const y = b.split('.').map(Number)
+  for (let i = 0; i < Math.max(x.length, y.length); i++) {
+    const d = (x[i] || 0) - (y[i] || 0)
+    if (d) return d
+  }
+  return 0
+}
+const VERSION = /^\d+(\.\d+)*$/
+const cellText = (s) => (s || '').replace(/[*`]/g, '').trim()
+// A version cell as a dotted number ("v1.2" -> "1.2"), or null when it is something else.
+const parseVersion = (s) => {
+  const v = cellText(s).replace(/^v(?=\d)/i, '')
+  return VERSION.test(v) ? v : null
+}
+
+// The lines under the first heading whose text (after its #s, and without a closing #
+// sequence) matches `re`, up to the next heading.
+function sectionBody(md, re) {
+  const lines = md.replace(/\r\n/g, '\n').split('\n')
+  const start = lines.findIndex((l) => {
+    const h = l.match(/^#{1,6}\s+(.*?)(?:\s+#+)?\s*$/)
+    return h && re.test(h[1])
+  })
+  if (start === -1) return ''
+  const end = lines.findIndex((l, i) => i > start && /^#{1,6}\s/.test(l))
+  return lines.slice(start + 1, end === -1 ? undefined : end).join('\n')
+}
+
+function lintVersionRecords() {
+  const spec = read('docs/spec/technical-spec.md')
+  if (!spec) return // section 1 reports a missing required spec
+  const sustain = cfgValue(read('sdd.config.yml') || '', 'process', 'mode') === 'sustain'
+  if (!sustain && !/^accepted$/i.test(docStatus(spec) || '')) return
+  const report = (msg) =>
+    (sustain ? err : warn)(
+      'C3',
+      `${msg} (${sustain ? 'process.mode is sustain' : 'the spec is Accepted'}, so the spec's Revision History and SPEC_VERSION.md must agree; see SPEC_VERSION.md, "Two version records")`
+    )
+  const log = read('SPEC_VERSION.md')
+  if (!log) return report('SPEC_VERSION.md is missing')
+  // The section itself, not a feature that mentions it ("## 3. Revision history export").
+  const history = tableRows(sectionBody(spec, /^(?:\d+(?:\.\d+)*[.)]?\s+)?revision history$/i), ['version'])
+    .map((r) => cellText(r.version))
+    .filter(Boolean)
+  if (!history.length)
+    return report(
+      'docs/spec/technical-spec.md has no "## Revision History" section (numbered or not) with a Version table, or no rows in it'
+    )
+  const unparsed = history.filter((v) => !parseVersion(v))
+  if (unparsed.length)
+    return report(
+      `docs/spec/technical-spec.md Revision History has ${unparsed.map((v) => `"${v}"`).join(', ')}, which spec-lint cannot compare - write versions as dotted numbers (1.2, or v1.2)`
+    )
+  const newest = history.map(parseVersion).sort(compareVersions).pop()
+  const row = tableRows(log, ['field', 'value']).find((r) => /^spec version$/i.test(cellText(r.field)))
+  if (!row) return report('SPEC_VERSION.md has no "Spec Version" row in its Current Version table')
+  const current = parseVersion(row.value)
+  if (!current)
+    return report(
+      `SPEC_VERSION.md Spec Version is "${cellText(row.value)}", which spec-lint cannot compare - write it as a dotted number (1.2, or v1.2)`
+    )
+  if (compareVersions(newest, current) !== 0)
+    (sustain ? err : warn)(
+      'C3',
+      `docs/spec/technical-spec.md Revision History is at ${newest}, but SPEC_VERSION.md Current Version is ${current} - ${
+        sustain
+          ? 'in sustain mode every amendment bumps both in the same PR'
+          : 'the spec is Accepted, so acceptance should have set both to the accepted version'
+      } (see SPEC_VERSION.md, "Two version records")`
+    )
+}
+if (!SCAFFOLD) lintVersionRecords()
+
+// ---- 11. Change registry: CHANGE-NNNN naming + a matching row per change (C3, C8) ----
+// Mirrors the ADR registry (section 3). A change is docs/changes/CHANGE-NNNN/ - the next free
+// four-digit number, never an id borrowed from an issue tracker - and has a row in
+// docs/changes/README.md whose Status matches its proposal.md. A row whose directory is gone
+// means a change was deleted rather than archived (C8). A directory that is not CHANGE-* at
+// all would escape every change check, so it fails too - except a hidden one (.obsidian/,
+// .vscode/), which is tool metadata, not a misnamed change. Structural, so it runs in
+// scaffold mode too.
+function lintChangeRegistry() {
+  for (const base of ['docs/changes', 'docs/changes/archive'])
+    for (const d of existsSync(base) ? readdirSync(base, { withFileTypes: true }) : [])
+      if (
+        d.isDirectory() &&
+        !d.name.startsWith('CHANGE-') &&
+        !d.name.startsWith('.') &&
+        !(base === 'docs/changes' && d.name === 'archive')
+      )
+        err(
+          'C3',
+          `${base}/${d.name} is not a change directory - everything under docs/changes/ is CHANGE-NNNN (or archive/), so the change checks would skip it; rename it CHANGE-NNNN or move it out of docs/changes/`
+        )
+  const changes = changeDirs()
+  const rows = tableRows(read('docs/changes/README.md') || '', ['id', 'status'])
+  for (const c of changes) {
+    if (!/^CHANGE-\d{4}$/.test(c.name)) {
+      err(
+        'C3',
+        `${c.path} is not named CHANGE-NNNN - a change takes the next free four-digit number (CHANGE-0001, CHANGE-0002, ...), never an issue or pull-request number; see docs/changes/README.md`
+      )
+      continue
+    }
+    const row = rows.find((r) => new RegExp(`\\b${c.name}\\b`).test(r.id))
+    if (!row) {
+      err('C3', `docs/changes/README.md is missing a registry row for ${c.name} (${c.path})`)
+      continue
+    }
+    const status = docStatus(read(`${c.path}/proposal.md`))
+    if (!status) {
+      err('C3', `${c.path}/proposal.md has no **Status:** - the registry check reads it from there`)
+      continue
+    }
+    if (cellText(row.status).toLowerCase() !== status.toLowerCase())
+      err(
+        'C3',
+        `docs/changes/README.md lists ${c.name} as "${cellText(row.status)}", but ${c.path}/proposal.md says "${status}" - update the registry row`
+      )
+  }
+  const listed = new Map() // id -> number of rows
+  for (const r of rows) {
+    const id = (r.id.match(/\bCHANGE-\w+/i) || [])[0]
+    if (!id || id === 'CHANGE-0000') continue
+    if (!/^CHANGE-\d{4}$/.test(id)) {
+      err('C3', `docs/changes/README.md has a row for "${id}" - registry IDs are CHANGE-NNNN, four digits`)
+      continue
+    }
+    listed.set(id, (listed.get(id) || 0) + 1)
+    if (listed.get(id) === 2) err('C3', `docs/changes/README.md lists ${id} more than once - keep one row per change`)
+    if (listed.get(id) === 1 && !changes.some((c) => c.name === id || c.name.startsWith(`${id}-`)))
+      err(
+        'C8',
+        `docs/changes/README.md lists ${id}, but neither docs/changes/${id} nor docs/changes/archive/${id} exists - changes are archived, never deleted`
+      )
+  }
+}
+lintChangeRegistry()
+
+// ---- 12. Change lifecycle: a delivered change is folded, bumped, archived (C3, C8) ---
+// Proposed -> Accepted -> Delivered -> Archived. One PR delivers a change: it folds the delta
+// into the living spec, adds a SPEC_VERSION.md Changelog row citing the change, and moves the
+// directory to docs/changes/archive/. Checked mechanically: a Delivered or Archived change may
+// not sit outside archive/; an archived change must have been delivered and be cited by a
+// Changelog row; and a PR that touches an archived change - so editing one counts as delivering
+// it again, which keeps archived records frozen - must also change SPEC_VERSION.md and the
+// living spec. Whether the folded edit matches the delta is review's job. "Delivered" is
+// self-declared, so the one mechanical hint that a change shipped without being delivered - every
+// task box ticked while it is still active - only warns. There is no warning for a change left
+// Accepted too long: a proposal's only date is when it was written.
+function lintChangeLifecycle() {
+  const log = read('SPEC_VERSION.md') || ''
+  const changelog = tableRows(sectionBody(log, /changelog/i), ['version'])
+  const citing = (id) => changelog.filter((r) => new RegExp(`\\b${id}\\b`).test(Object.values(r).join(' | ')))
+  const cited = (id) => citing(id).length > 0
+  for (const c of changeDirs()) {
+    if (!/^CHANGE-\d{4}$/.test(c.name)) continue // section 11 reports the name
+    const status = docStatus(read(`${c.path}/proposal.md`))
+    if (!status) continue // section 11 reports the missing Status
+    const delivered = /^(delivered|archived)$/i.test(status)
+    const boxes = [...(read(`${c.path}/tasks.md`) || '').matchAll(/^\s*-\s*\[([ xX])\]/gm)].map((m) => m[1] !== ' ')
+    if (!c.archived && !delivered && boxes.length && boxes.every(Boolean))
+      warn(
+        'C3',
+        `${c.path}: every task box in tasks.md is ticked, but the change is still ${status} - if it has shipped, deliver it (fold the delta, bump SPEC_VERSION.md, archive); if not, untick what is not done`
+      )
+    if (!c.archived && delivered)
+      err(
+        'C8',
+        `${c.path} is ${status} but still sits outside docs/changes/archive/ - move it to docs/changes/archive/${c.name} in the PR that delivers it`
+      )
+    if (c.archived && !delivered)
+      err('C8', `${c.path} is archived, but its proposal.md says "${status}" - only a Delivered change is archived`)
+    if (c.archived && !cited(c.name))
+      err(
+        'C3',
+        `${c.path} is archived, but SPEC_VERSION.md has no Changelog row referencing ${c.name} - delivering a change records its amendment and version bump there (SPEC_VERSION.md, "Amendment Process")`
+      )
+  }
+  if (!CHANGED) return
+  // A change directory the PR touched that is gone from both places was deleted, not archived.
+  const touched = new Set(CHANGED.map((p) => (p.match(/^docs\/changes\/(?:archive\/)?(CHANGE-\d{4})\//) || [])[1]).filter(Boolean))
+  for (const id of touched)
+    if (!existsSync(`docs/changes/${id}`) && !existsSync(`docs/changes/archive/${id}`))
+      err('C8', `this PR deletes ${id} - changes are archived, never deleted; restore it (move it to docs/changes/archive/ if it is done)`)
+  const currentRow = tableRows(log, ['field', 'value']).find((r) => /^spec version$/i.test(cellText(r.field)))
+  const current = currentRow && parseVersion(currentRow.value)
+  const archivedHere = new Set(
+    CHANGED.map((p) => (p.match(/^docs\/changes\/archive\/(CHANGE-\d{4})\//) || [])[1]).filter(
+      (id) => id && existsSync(`docs/changes/archive/${id}`)
+    )
+  )
+  for (const id of archivedHere) {
+    if (!CHANGED.includes('SPEC_VERSION.md'))
+      err('C3', `this PR archives ${id} without changing SPEC_VERSION.md - delivery adds its Changelog row and version bump in the same PR`)
+    const rows = citing(id)
+    if (current && rows.length && !rows.some((r) => parseVersion(r.version) === current))
+      err(
+        'C3',
+        `this PR archives ${id}, but the SPEC_VERSION.md Changelog row citing it is at ${rows.map((r) => cellText(r.version)).join(', ')}, not the Current Version ${current} - delivery adds a row at the bumped version`
+      )
+    if (!CHANGED.some((p) => /^docs\/(spec|design)\//.test(p) && existsSync(p)))
+      err(
+        'C3',
+        `this PR archives ${id} without editing the living spec (docs/spec/** or docs/design/**) - delivery folds the delta in, in the same PR`
+      )
+  }
+}
+lintChangeLifecycle()
+
+// ---- 13. The PR body keeps the PR template's structure (C1) ------------------------
+// GitHub injects .github/PULL_REQUEST_TEMPLATE.md only for web-UI or interactive creation;
+// `gh pr create --body` / `--body-file` bypass it, which is how agents open PRs. A body rebuilt
+// from memory of what CI inspects degrades to exactly the inspected part, so the structure is
+// enforced - read from the template at runtime, never hardcoded, so that editing the template
+// changes what is enforced.
+//
+// Policy, deliberately:
+// - Headings, not prose. Every template heading outside HTML comments and code fences must
+//   appear in the body at the same level with the same text. Extra sections are fine and order
+//   is not checked; a heading inside a fence or comment does not count - quoting the template
+//   is not filling it. What is written under a heading is never judged: that is review's job,
+//   and a linter that tried would be gamed with one-word sections.
+// - Checkboxes need not be ticked. Requiring ticks teaches authors to tick without reading and
+//   turns a review aid into a formality.
+// - The template's own bracketed placeholders (TASK-[XXX], M[X], ...) must be replaced, matched
+//   as those exact strings - never a generic [...] pattern, which would reject array indexing,
+//   links, or [OPEN - REQUIRES INPUT] - and in the form the template writes them: one it puts in
+//   inline code (`[your test command]`) is looked for anywhere, the rest only outside inline
+//   code, so a body that names TASK-[XXX] in backticks (a PR about the template, say) is prose.
+//   An unticked option whose label merely contains one is an option not chosen (the "Yes" line
+//   of "Spec Amendment Required?") and is ignored; an unticked item that is nothing but a
+//   placeholder was never filled in, and is not.
+// - The Spec Reference row is section 4's alone, so its placeholder is not reported here; a
+//   blank body is reported here, once. Allowlisted bots and a reasoned opt-out are exempt -
+//   see section 4.
+const PR_TEMPLATE = '.github/PULL_REQUEST_TEMPLATE.md'
+const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+const headingsOf = (md) =>
+  [...md.matchAll(/^ {0,3}(#{1,6})[ \t]+(.+?)(?:[ \t]+#+)?[ \t]*$/gm)].map((m) => ({
+    level: m[1].length,
+    text: m[2].replace(/\s+/g, ' '),
+  }))
+const headingLine = (h) => `${'#'.repeat(h.level)} ${h.text}`
+
+// The template's bracketed placeholders, each with the text glued to it (TASK-[XXX], M[X]),
+// and whether the template writes it inside inline code (`[your test command]`).
+function templatePlaceholders(template) {
+  const found = new Map()
+  for (const line of withoutCommentsAndFences(template).split('\n')) {
+    if (line.includes('**Spec Reference**')) continue // section 4 owns this row
+    const code = [...line.matchAll(/`[^`\n]*`/g)].map((m) => [m.index, m.index + m[0].length])
+    for (const m of line.matchAll(/[^\s|`(]*\[[^\]\n]+\][^\s|`)]*/g)) {
+      if (/^\[[ xX]\]$/.test(m[0])) continue // a bare checkbox - but M[X] is a placeholder
+      if (line[m.index + m[0].length] === '(') continue // a link
+      if (!found.has(m[0])) found.set(m[0], code.some(([start, end]) => m.index > start && m.index < end))
+    }
+  }
+  return [...found].map(([text, inCode]) => ({ text, inCode }))
+}
+
+function lintPrTemplate(body) {
+  const template = read(PR_TEMPLATE)
+  if (template == null) {
+    notes.push(`PR template structure not checked - there is no ${PR_TEMPLATE} to read it from`)
+    return
+  }
+  const bypass = `gh pr create --body / --body-file bypasses GitHub's template injection, so copy ${PR_TEMPLATE} and fill it in`
+  if (!body.trim()) {
+    err('C1', `the PR body is empty - ${bypass}`)
+    return
+  }
+  const clean = withoutCommentsAndFences(body)
+  const have = headingsOf(clean)
+  const quoted = headingsOf(body.replace(/\r\n/g, '\n'))
+  const same = (a, b) => a.level === b.level && a.text === b.text
+  const missing = headingsOf(withoutCommentsAndFences(template))
+    .filter((h) => !have.some((x) => same(x, h)))
+    .map((h) => {
+      const moved = have.find((x) => x.text === h.text)
+      if (moved) return `"${headingLine(h)}" (found as "${headingLine(moved)}" - keep the template's heading level)`
+      if (quoted.some((x) => same(x, h))) return `"${headingLine(h)}" (present only inside a code fence or HTML comment)`
+      return `"${headingLine(h)}"`
+    })
+  if (missing.length)
+    err(
+      'C1',
+      `the PR body is missing ${missing.length} section${missing.length > 1 ? 's' : ''} of ${PR_TEMPLATE}: ${missing.join(', ')} - ${bypass}, keeping every heading`
+    )
+  const lines = clean.split('\n')
+  const withoutInlineCode = (l) => l.replace(/`[^`\n]*`/g, (m) => ' '.repeat(m.length))
+  const left = templatePlaceholders(template)
+    .filter(({ text, inCode }) => {
+      const re = new RegExp(`(?<![\\w-])${escapeRe(text)}(?![\\w-])`)
+      return lines.some((l) => {
+        if (!re.test(inCode ? l : withoutInlineCode(l))) return false
+        const option = l.match(/^\s*[-*+]\s+\[ \]\s+(.*)$/)
+        return !option || option[1].trim() === text
+      })
+    })
+    .map((p) => p.text)
+  if (left.length)
+    err(
+      'C1',
+      `the PR body still carries ${PR_TEMPLATE} placeholder${left.length > 1 ? 's' : ''} ${left.map((p) => `"${p}"`).join(', ')} - replace each with the real value, or delete an example row that does not apply`
+    )
+}
+if (PR_BODY != null && !BOT_EXEMPT && !TEMPLATE_OPT_OUT) lintPrTemplate(PR_BODY)
+
+// ---- 14. Canonical section headings of the scaffolded documents (C1) ---------------
+// A document rewritten outside the starter drifts: translated out of English and back, its
+// headings came back in sentence case and "Revision History" became "Change history", and every
+// later starter sync turned into manual reconciliation. A dropped heading can take a governance
+// section with it - design.md's Accessibility section is the one that backs C6.
+//
+// The canonical headings are listed here because adopting a document overwrites its template,
+// leaving nothing else to read them from. In a filled-in required document each must appear at
+// its level with its wording and case. Section numbers are ignored, so sections may be added
+// and renumbered freely; what a section says is never judged.
+//
+// The starter keeps this list honest against its own templates: while the repo is a pristine
+// scaffold, a document that is still its template (its title carries [Product Name]) must have
+// every canonical heading, and each of its own headings must be listed - as canonical, or as one
+// of the illustrations the template ships (`examples`). A template edit that forgets this list
+// fails the starter's CI, so adopters always inherit a list that matches the templates.
+const CANONICAL_HEADINGS = {
+  'docs/product/brief.md': {
+    canonical: [
+      '## Problem Statement',
+      '## Target User',
+      '## Value Proposition',
+      '## Success Outcomes',
+      '## Explicit Out-of-Scope',
+      '## Open Questions',
+    ],
+  },
+  'docs/product/prd.md': {
+    canonical: [
+      '## 1. Objectives & Success Metrics',
+      '## 2. User Personas',
+      '## 3. Functional Requirements',
+      '## 4. Non-Functional Requirements',
+      '## 5. Constraints & Assumptions',
+      '### Constraints',
+      '### Assumptions',
+      '## 6. Dependencies',
+      '## 7. Out of Scope',
+      '## 8. Revision History',
+    ],
+    examples: ['#### User Stories', '#### Acceptance Criteria — US-001', '#### Acceptance Criteria — US-002'],
+  },
+  'docs/spec/technical-spec.md': {
+    canonical: [
+      '## 1. System Overview',
+      '### 1.1 Architecture Diagram',
+      '### 1.2 Technology Stack',
+      '## 2. Component Specifications',
+      '## 3. API Contracts',
+      '### 3.1 Global Conventions',
+      '### 3.2 Endpoint Index',
+      '## 4. Data Model',
+      '### 4.1 Entity Overview',
+      '### 4.2 Key Invariants',
+      '## 5. Security Specification',
+      '## 6. Performance Targets',
+      '## 7. Environment Configuration',
+      '## 8. Third-Party Integrations',
+      '## 9. Open Technical Questions',
+      '## 10. Revision History',
+    ],
+  },
+  'docs/spec/api-contracts.md': {
+    canonical: ['## Global Conventions', '## Revision History'],
+    examples: [
+      '## Authentication Endpoints',
+      '### POST /v1/auth/register',
+      '### POST /v1/auth/login',
+      '## Resource Endpoints',
+      '### GET /v1/resources',
+      '### POST /v1/resources',
+      '### GET /v1/resources/:id',
+      '### PATCH /v1/resources/:id',
+      '### DELETE /v1/resources/:id',
+      '## OpenAPI 3.1 Specification',
+    ],
+  },
+  'docs/spec/data-model.md': {
+    canonical: [
+      '## 1. Entity Relationship Diagram',
+      '## 2. Entity Definitions',
+      '## 3. Relationship Matrix',
+      '## 4. Enum Definitions',
+      '## 5. Soft Delete Strategy',
+      '## 6. Migration Strategy',
+      '## 7. Data Validation Rules',
+      '## 8. Revision History',
+    ],
+  },
+  'docs/design/design.md': {
+    canonical: [
+      '## 1. Design Principles',
+      '## 2. Design Tokens',
+      '### Color',
+      '### Typography',
+      '### Spacing, radius, shadow, motion',
+      '## 3. Primitives / Components',
+      '## 4. Layout & Responsive',
+      '## 5. Accessibility',
+      '## 6. Content & Voice',
+      '## 7. Anti-patterns',
+      '## 8. Design Decisions → ADR',
+    ],
+  },
+  'docs/plan/backlog.md': {
+    canonical: ['## Dependency Graph', '## Backlog Status Summary'],
+    examples: [
+      '## Milestone 0 — Foundation',
+      '### TASK-001: Initialise Repository Structure',
+      '### TASK-002: Configure CI/CD Pipeline',
+      '### TASK-003: Provision Staging Environment',
+    ],
+  },
+  'docs/plan/milestones.md': {
+    canonical: ['## Milestone Summary Table', '## Critical Path', '## Risk Register', '## Decisions Required Before Each Milestone'],
+    examples: ['## Milestone 0 — Foundation *(Always First)*', '### Deliverables'],
+  },
+}
+
+// Section numbers are ignored: "5.", "5" and "5)" all prefix the same heading.
+const withoutNumber = (text) => text.replace(/^\d+(?:\.\d+)*[.)]?\s+/, '')
+// A heading's letters and digits only, lower-cased: equal for "Revision History", "revision
+// history:", "🔒 Revision History" - and for "→" written "->".
+const loose = (text) => withoutNumber(text).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '')
+const words = (text) => new Set(withoutNumber(text).toLowerCase().match(/\p{L}{4,}/gu) || [])
+const quoteAll = (lines) => lines.map((l) => `"${l}"`).join(', ')
+
+// Each heading with the heading it sits under (the nearest earlier one of a lower level).
+const withParents = (headings) =>
+  headings.map((h, i) => ({ ...h, parent: headings.slice(0, i).reverse().find((p) => p.level < h.level) || null }))
+
+// Underlined (setext) headings - valid Markdown, but not what the starter writes.
+const setextHeadings = (md) => {
+  const lines = md.split('\n')
+  return lines.flatMap((l, i) => {
+    const under = (lines[i + 1] || '').match(/^ {0,3}(=+|-+)[ \t]*$/)
+    return under && l.trim() && !/^\s*([#>|*+-]|\d+[.)])/.test(l) ? [{ level: under[1][0] === '=' ? 1 : 2, text: l.trim() }] : []
+  })
+}
+
+function lintCanonicalHeadings() {
+  for (const [path, { canonical, examples = [] }] of Object.entries(CANONICAL_HEADINGS)) {
+    const txt = read(path)
+    if (txt == null) continue
+    const found = headingsOf(withoutCommentsAndFences(txt))
+    if (/^# .*\[Product Name\]/m.test(txt)) {
+      if (!SCAFFOLD) continue // a template left in a real project: section 9 reports its placeholders
+      const listed = new Set([...canonical, ...examples])
+      const unlisted = [...new Set(found.filter((h) => h.level > 1 && !h.text.includes('[')).map(headingLine))].filter(
+        (l) => !listed.has(l)
+      )
+      const gone = canonical.filter((c) => !found.some((h) => headingLine(h) === c))
+      if (unlisted.length)
+        err(
+          'C1',
+          `${path} (still the template) has heading${unlisted.length > 1 ? 's' : ''} ${quoteAll(unlisted)} that CANONICAL_HEADINGS in scripts/spec-lint.mjs does not list - add ${unlisted.length > 1 ? 'each' : 'it'} there as canonical or as an example, so adopters inherit the change (filling this document in? replace [Product Name] in its title first)`
+        )
+      if (gone.length)
+        err(
+          'C1',
+          `${path} (still the template) no longer has canonical heading${gone.length > 1 ? 's' : ''} ${quoteAll(gone)} - update CANONICAL_HEADINGS in scripts/spec-lint.mjs to match the template`
+        )
+      continue
+    }
+    if (SCAFFOLD || !REQUIRED_DOCS.includes(path)) continue
+    // A canonical subsection must sit under its canonical parent, when that parent is there at
+    // all (a missing parent is reported on its own).
+    const same = (a, b) => a.level === b.level && withoutNumber(a.text) === withoutNumber(b.text)
+    const want = withParents(canonical.map((line) => ({ level: line.indexOf(' '), text: line.slice(line.indexOf(' ') + 1) })))
+    const have = withParents(found)
+    const placed = (c, h) =>
+      same(c, h) && (!c.parent || !have.some((x) => same(x, c.parent)) || (h.parent && same(h.parent, c.parent)))
+    const unmatched = have.filter((h) => !want.some((c) => loose(c.text) === loose(h.text)))
+    const setext = setextHeadings(withoutCommentsAndFences(txt))
+    const missing = want
+      .filter((c) => !have.some((h) => placed(c, h)))
+      .map((c) => {
+        const line = `"${headingLine(c)}"`
+        const elsewhere = have.find((h) => same(c, h))
+        if (elsewhere)
+          return `${line} (found under "${elsewhere.parent ? headingLine(elsewhere.parent) : 'the title'}" - keep it under "${headingLine(c.parent)}")`
+        const moved = have.find((h) => withoutNumber(h.text) === withoutNumber(c.text))
+        if (moved) return `${line} (found as "${headingLine(moved)}" - keep its level)`
+        const near = have.find((h) => loose(h.text) === loose(c.text))
+        if (near) return `${line} (found as "${headingLine(near)}" - keep the starter's wording, case and punctuation)`
+        const underlined = setext.find((h) => loose(h.text) === loose(c.text))
+        if (underlined) return `${line} (found as an underlined heading "${underlined.text}" - write it as a # heading)`
+        const mine = words(c.text)
+        const renamed = unmatched
+          .filter((h) => h.level === c.level)
+          .map((h) => ({ h, shared: [...words(h.text)].filter((w) => mine.has(w)).length }))
+          .filter((x) => x.shared)
+          .sort((a, b) => b.shared - a.shared)[0]
+        if (renamed) return `${line} (renamed to "${headingLine(renamed.h)}"? - keep the starter's wording)`
+        return line
+      })
+    if (missing.length)
+      err(
+        'C1',
+        `${path} is missing canonical section heading${missing.length > 1 ? 's' : ''} ${missing.join(', ')} - keep the starter's section headings verbatim (English wording, case and level; section numbers may change) and add your own sections freely`
+      )
+  }
+}
+lintCanonicalHeadings()
+
 // ---- report ----------------------------------------------------------------------
 if (SCAFFOLD)
   console.log(
-    'note    scaffold mode: docs/spec/technical-spec.md is still the template, so project-level checks (mandatory docs, PR Spec Reference) are skipped until it is filled in.'
+    'note    scaffold mode: docs/spec/technical-spec.md is still the template, so project-level checks (mandatory docs, process mode, placeholders, canonical headings, PR body) are skipped until it is filled in.'
   )
+if (presenceOnly.length)
+  console.log(
+    `note    presence-only Spec Reference - it points at neither a technical-spec.md §section nor a CHANGE-NNNN, so it could not be resolved: ${presenceOnly.join(', ')}`
+  )
+for (const n of notes) console.log(`note    ${n}`)
 for (const w of warnings) console.log(`warning ${w}`)
 for (const e of errors) console.log(`error   ${e}`)
 if (errors.length) {

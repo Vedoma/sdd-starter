@@ -22,6 +22,110 @@ Guidance for the next entry:
   fresh [Unreleased] block above it.
 -->
 
+### Added
+
+- Diff-aware `spec-lint` checks: on a pull request the workflow passes the changed paths as
+  `CHANGED_FILES`; local runs leave it unset and those checks are skipped.
+- `spec-lint` blocks merging an ADR that is still `proposed`, and an ADR's front-matter
+  `status` must be one of the lifecycle states. It cannot tell who accepted an ADR, so a
+  status edited by hand passes; the required review is the gate for that. `adr-status` now
+  updates the registry row too, then dispatches `spec-lint` on the PR branch, because its
+  workflow-token commit does not trigger `pull_request` (other required checks are not
+  re-run; see `docs/repo-setup.md` §6). Constitution C4 records the new coverage and stays
+  `partial`.
+- `spec-lint` fails a filled-in project whose required documents, `SPEC_VERSION.md` or active
+  change directories still carry the scaffold's own placeholder markers (`[Product Name]`,
+  `[Name]`, `[Task Title]`, `[Title]`, `[Date]`, `[x.x]`; `[name]` or a `YYYY-MM-DD` date as a
+  table cell or after a `**Label:**`). It is a fixed list, not every template hint. HTML
+  comments, fenced and inline code, and links (including reference-style ones) are ignored,
+  so prose does not trip it; fences are read as GitHub renders them. Constitution C1 records
+  it. A leftover backlog template block now fails
+  instead of silently switching the task checks off.
+- The relationship between the spec's Revision History and `SPEC_VERSION.md` is written down
+  (`SPEC_VERSION.md` → "Two version records"): the history may advance while `Draft`;
+  `SPEC_VERSION.md` moves only on acceptance and amendments. `spec-lint` fails a `sustain`
+  project whose two records disagree, whose `SPEC_VERSION.md` is missing, or whose records
+  hold a version it cannot compare (dotted numbers, optionally `v`-prefixed), and warns under
+  `greenfield` once the spec is `Accepted`.
+- `CHANGE-NNNN` numbering is defined (the next free four-digit number, never a tracker id),
+  and `docs/changes/README.md` gains a Change Registry. `spec-lint` fails a change directory
+  not named `CHANGE-NNNN` (and any other directory under `docs/changes/` besides `archive/`),
+  a change with no registry row or with a row whose Status disagrees with its `proposal.md`,
+  a row whose directory is gone, and a malformed or duplicated registry ID.
+- The second half of the change lifecycle is enforced. `spec-lint` fails a `Delivered` or
+  `Archived` change outside `docs/changes/archive/`, an archived change that was never
+  delivered or that no `SPEC_VERSION.md` Changelog row cites, a PR that archives a change
+  without also changing `SPEC_VERSION.md` (the citing row at the Current Version) and the
+  living spec, and a PR that deletes a change. Under `sustain`, delivering means archiving: a PR
+  that edits `docs/spec/**` must archive the change it delivers - except a new
+  `docs/spec/behavior/*.feature` file, which may land earlier together with the active change
+  (C10); the workflow passes the added paths as `ADDED_FILES`. A
+  merged change id is permanent; renumbering reads as a deletion. A change whose
+  every task box is ticked while it is still active warns. The proposal's state machine
+  (`Proposed → Accepted → Delivered → Archived`) is spelled out. Constitution C3 records the
+  mechanics and stays `partial`: whether a folded spec edit matches its delta, and whether a
+  change that shipped was ever delivered, are review-only.
+- `Spec Reference` values resolve. In backlog tasks, change tasks and the PR body, a `§N` -
+  both ends of a range - must be a numbered heading of `technical-spec.md` (or a section the
+  named change's `spec-delta.md` touches; a change's own tasks name it implicitly), and a
+  change id must be spelled `CHANGE-NNNN` and exist, active or archived. Each `§` belongs to
+  the document named before it, so a `§` after another document (`data-model.md §3`) and a
+  value naming neither form (`N/A`) are still accepted on presence alone, and `spec-lint`
+  prints a note naming each one. Tasks and the PR body read the value the same way (a table
+  cell or a `Spec Reference:` line). Constitution C1 stays `partial`.
+- The `spec-lint` checks added so far are covered by `node --test` fixtures in
+  `tests/integration/` (stock Node, no dependencies), which the `spec-lint` workflow runs
+  before linting.
+- `spec-lint` enforces the PR template's structure, not just its Spec Reference row. The
+  headings and placeholders are read from `.github/PULL_REQUEST_TEMPLATE.md` at runtime; a
+  body that drops or demotes a heading, quotes the template in a code fence, keeps a
+  placeholder, or is blank fails, naming what is missing. Ticked boxes are not required.
+  Allowlisted dependency and release bots (`PR_EXEMPT_BOTS` in the workflow; `dependabot[bot]`
+  and `renovate[bot]` by default) skip the PR-body checks, and a
+  `spec-lint: skip-pr-template - reverts #123` line skips the structure check only (its reason
+  must cite a #N; the Spec Reference still applies), each with a note. The workflow re-runs on
+  `edited`, so the result follows the current description. Its cases join the `node --test`
+  fixtures in `tests/integration/`, which run against a frozen copy of the template, so an
+  adopter editing theirs cannot turn them red.
+- `spec-lint` pins the canonical section headings of the scaffolded documents (brief, PRD,
+  technical spec, API contracts, data model, design, backlog, milestones). A filled-in
+  required document that renames, re-cases, re-punctuates, demotes, moves or drops one fails,
+  naming what it found instead where it can (the same words at another level or under another
+  section, other case or punctuation, an underlined heading, or the likeliest rename);
+  sections may be added and renumbered in any number style. The list lives in
+  `scripts/spec-lint.mjs`, and while the repo is a pristine scaffold spec-lint fails any
+  template whose headings disagree with it, so the list cannot drift from the templates. The
+  tests of that sync read the repo's own templates, so they run only while the repo is the
+  untouched starter; every other test builds from frozen fixtures.
+
+### Changed
+
+- The `technical-spec.md` template starts at version `0.1`, matching `SPEC_VERSION.md`. It
+  said `1.0`, so the starter shipped the very disagreement it now checks for.
+
+### Changed
+
+- **Breaking:** `sdd.config.yml` must declare `process.mode` (`greenfield` | `sustain`),
+  and `spec-lint` holds the project to it: `greenfield` fails on any `docs/changes/CHANGE-*`
+  directory; `sustain` requires an `Accepted` technical spec and fails a PR that edits
+  `docs/spec/**` without delivering a change. Constitution C3 moves from
+  `unenforced` to `partial`. **Migrating:** add `mode:` under `process:` in
+  `sdd.config.yml` — `greenfield` while you are still writing the spec, `sustain` if it is
+  accepted and you already work through `docs/changes/`. Without it `spec-lint` fails.
+- **Breaking:** the ADR Decision Registry must agree with the ADRs in both directions: each
+  row's Status matches its ADR's front-matter `status` (a superseded row names the
+  successor), and every row has its file. Earlier `adr-status` updated only the front matter,
+  so a project that used `/adr accept` has rows still reading `Proposed`. **Migrating:**
+  before upgrading, set each registry row's Status to its ADR's front-matter `status`.
+
+### Fixed
+
+- `spec-lint` no longer accepts a blank or dash-only `Spec Reference` table cell, in a
+  backlog task or the PR body. Its pattern captured the cell's closing pipe, so a blank cell
+  read as `|` and passed the presence check.
+- The `spec-lint` workflow no longer passes an empty `PR_BODY` on pushes to `main`, which a
+  filled-in project would read as a PR with no Spec Reference.
+
 ## [0.1.1] - 2026-08-07
 
 ### Fixed
