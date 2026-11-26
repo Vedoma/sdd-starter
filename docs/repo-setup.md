@@ -97,6 +97,15 @@ request. Pushing with a personal access token or GitHub App token instead would 
 but the job above runs the pull request's own copy of `adr-status.mjs`, so it would hand that
 credential to pull-request code. Revisit once the script is read from the default branch.
 
+## 7. Delete merged branches (optional)
+
+In **Settings → General → Pull Requests**, turn on **Automatically delete head branches**.
+A pull request's branch is then deleted as soon as it merges, so finished work does not
+pile up as stale branches. Nothing C8 relies on is lost: the merge commit keeps the
+history, and a deleted branch can be restored from its pull request. Only a merged pull
+request's own branch is deleted - the default branch stays protected by §2 - and an open
+pull request stacked on the deleted branch is retargeted to the merged one's base.
+
 ## Verifying the setup
 
 Open a throwaway PR that deliberately violates a clause — e.g. add a backlog task with one
