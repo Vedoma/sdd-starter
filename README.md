@@ -1,13 +1,13 @@
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/95ff5615-ddd6-44b3-8b12-897fd59e171e">
-  <img src="https://github.com/user-attachments/assets/7755f537-a930-417f-8735-3515909dda6d" alt="sdd-starter">
+  <source media="(prefers-color-scheme: dark)" srcset="./.github/assets/readme-banner-dark.png">
+  <img src="./.github/assets/readme-banner-light.png" alt="sdd-starter">
 </picture>
 
 # SDD Starter - Spec-Driven Development Scaffold
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/9fa10ca9-416a-4686-bc1e-9b0670ebb33f">
-  <img src="https://github.com/user-attachments/assets/c351dc30-1d8b-407c-b7b6-7212b6a038db" alt="Principle: the specification is the single source of truth.">
+  <source media="(prefers-color-scheme: dark)" srcset="./.github/assets/principle-dark.png">
+  <img src="./.github/assets/principle-light.png" alt="Principle: the specification is the single source of truth.">
 </picture>
 
 A ready-to-use, MIT-licensed scaffold for **Spec-Driven Development**: plain Markdown,
@@ -24,8 +24,8 @@ craftsmanship; it is craftsmanship applied where it now counts. (See antirez,
 [_Control the ideas, not the code_](https://antirez.com/news/169).)
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/8cbea053-2f5a-43c9-b70d-bd2a2aaf554a">
-  <img src="https://github.com/user-attachments/assets/64b8d284-dc5d-49a9-816a-ba538a20c3d6" alt="Control the ideas, not the code">
+  <source media="(prefers-color-scheme: dark)" srcset="./.github/assets/leverage-dark.png">
+  <img src="./.github/assets/leverage-light.png" alt="Control the ideas, not the code">
 </picture>
 
 This scaffold makes those ideas first-class: **versioned, reviewable, and enforced** with
@@ -36,8 +36,8 @@ block a non-compliant PR rather than trusting an agent to remember the rules. Th
 ## The Two-Mode Lifecycle
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/efd3617d-cb12-4bb7-8000-ea47007f83ec">
-  <img src="https://github.com/user-attachments/assets/89886691-1427-42d1-899b-ab0817eda194" alt="The two-mode lifecycle">
+  <source media="(prefers-color-scheme: dark)" srcset="./.github/assets/lifecycle-dark.png">
+  <img src="./.github/assets/lifecycle-light.png" alt="The two-mode lifecycle">
 </picture>
 
 - **Greenfield** builds the initial living spec, phase by phase.
@@ -56,8 +56,8 @@ pull request that delivers a change - folding the delta in, bumping
 ## Repository Structure
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/244ec9a3-3a04-4c3e-994b-5127ad2e2d04">
-  <img src="https://github.com/user-attachments/assets/a90cb448-5824-412a-858d-1964c40a2311" alt="Repository map">
+  <source media="(prefers-color-scheme: dark)" srcset="./.github/assets/repomap-dark.png">
+  <img src="./.github/assets/repomap-light.png" alt="Repository map">
 </picture>
 
 ```
@@ -84,6 +84,7 @@ pull request that delivers a change - folding the delta in, bumping
 ├── .cursor/rules/                ← points Cursor at AGENTS.md + constitution
 ├── .githooks/                    ← optional pre-commit hook that runs spec-lint
 ├── .github/
+│   ├── assets/                   ← the README's images (light + dark)
 │   ├── copilot-instructions.md   ← points Copilot at AGENTS.md + constitution
 │   ├── CODEOWNERS                ← required reviewers (fill in before enabling)
 │   ├── PULL_REQUEST_TEMPLATE.md
@@ -99,8 +100,8 @@ pull request that delivers a change - folding the delta in, bumping
 ## The Workflow
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/1815b82f-70f3-4304-91b3-e53bab8908c0">
-  <img src="https://github.com/user-attachments/assets/4f3f3e6c-b0c0-4bec-961d-52266fde0866" alt="The workflow: six phases, one command each">
+  <source media="(prefers-color-scheme: dark)" srcset="./.github/assets/workflow-dark.png">
+  <img src="./.github/assets/workflow-light.png" alt="The workflow: six phases, one command each">
 </picture>
 
 Each phase has a command (Claude Code: [`.claude/commands/`](./.claude/commands/)) backed
@@ -126,8 +127,8 @@ the scaffold's section headings verbatim, even when the content is in another la
 ## Behaviour, Specified Before It's Built
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/d64888e3-4215-4bb3-8946-b469f90ac0f2">
-  <img src="https://github.com/user-attachments/assets/821292b6-02e3-48fb-8de3-e1317054d741" alt="Behaviour, Written First">
+  <source media="(prefers-color-scheme: dark)" srcset="./.github/assets/behavior-dark.png">
+  <img src="./.github/assets/behavior-light.png" alt="Behaviour, Written First">
 </picture>
 
 When a capability has user-facing behaviour (`capabilities.behavior: true`), the scaffold
@@ -162,8 +163,8 @@ cites resolves to one.
 ## Getting Started
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/7a63c3ac-4c99-4351-bffc-036e93836b62">
-  <img src="https://github.com/user-attachments/assets/a6a68c94-72c1-46b9-8b47-752bb56b2b06" alt="Your first 60 seconds: clone, declare, start">
+  <source media="(prefers-color-scheme: dark)" srcset="./.github/assets/quickstart-dark.png">
+  <img src="./.github/assets/quickstart-light.png" alt="Your first 60 seconds: clone, declare, start">
 </picture>
 
 1. **Clone and rename** this repo.
@@ -188,8 +189,8 @@ cites resolves to one.
 ## Landing Zone for a forge-md Bundle
 
 <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/d3e0f9f1-b98f-45b9-8776-97c095738b2b">
-    <img src="https://github.com/user-attachments/assets/5f81eb20-eec1-4d69-88f5-30b92b3247ba" alt="One pipeline, zero lock-in">
+    <source media="(prefers-color-scheme: dark)" srcset="./.github/assets/forgemd-dark.png">
+    <img src="./.github/assets/forgemd-light.png" alt="One pipeline, zero lock-in">
 </picture>
 
 This scaffold is the downstream half of a pipeline. The
@@ -238,8 +239,8 @@ the full, enforceable list.
 ## Choosing What's Mandatory
 
 <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/eff1bd4c-f73f-4ce7-b3e5-42a40ee0b723">
-    <img src="https://github.com/user-attachments/assets/c01eb4b7-d6fd-4967-b95f-1b882268691f" alt="What's mandatory: core + capabilities + process">
+    <source media="(prefers-color-scheme: dark)" srcset="./.github/assets/mandatory-dark.png">
+    <img src="./.github/assets/mandatory-light.png" alt="What's mandatory: core + capabilities + process">
 </picture>
 
 No team-size tiers. Which documents are required is a real, machine-read setting driven by
@@ -253,8 +254,8 @@ its design spec. See [`docs/profiles.md`](./docs/profiles.md) for the model and 
 ## License
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/c3f4882d-6c5c-487a-97d8-93de04520344">
-  <img src="https://github.com/user-attachments/assets/8589c6e6-1528-4372-a755-8de2e37092af" alt="MIT License - free of charge, forever">
+  <source media="(prefers-color-scheme: dark)" srcset="./.github/assets/license-dark.png">
+  <img src="./.github/assets/license-light.png" alt="MIT License - free of charge, forever">
 </picture>
 
 MIT. Use it freely for commercial and open-source projects.
