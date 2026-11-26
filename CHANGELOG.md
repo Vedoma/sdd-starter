@@ -97,11 +97,11 @@ Guidance for the next entry:
   template whose headings disagree with it, so the list cannot drift from the templates. The
   tests of that sync read the repo's own templates, so they run only while the repo is the
   untouched starter; every other test builds from frozen fixtures.
-
-### Changed
-
-- The `technical-spec.md` template starts at version `0.1`, matching `SPEC_VERSION.md`. It
-  said `1.0`, so the starter shipped the very disagreement it now checks for.
+- A review standard for every pull request: `prompts/pr-review.md`, with a `/pr-review`
+  wrapper. Verify each finding before reporting it, separate what blocks merge (an
+  undocumented spec deviation, C2, or an edited accepted ADR, C4, as well as defects) from
+  what does not, and say what was not checked. `AGENTS.md` points at it, so it is in context
+  whenever a review starts. The agent drafts the review; a human posts it. (#55)
 
 ### Changed
 
@@ -117,6 +117,8 @@ Guidance for the next entry:
   successor), and every row has its file. Earlier `adr-status` updated only the front matter,
   so a project that used `/adr accept` has rows still reading `Proposed`. **Migrating:**
   before upgrading, set each registry row's Status to its ADR's front-matter `status`.
+- The `technical-spec.md` template starts at version `0.1`, matching `SPEC_VERSION.md`. It
+  said `1.0`, so the starter shipped the very disagreement it now checks for.
 
 ### Fixed
 

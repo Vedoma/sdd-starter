@@ -12,7 +12,8 @@
 
 A ready-to-use, MIT-licensed scaffold for **Spec-Driven Development**: plain Markdown,
 no CLI, no runtime, no lock-in. Clone it, declare what you're building, and drive a project
-from idea to implementation with every decision traceable and every rule enforced in CI.
+from idea to implementation with every decision traceable, and every rule saying how - and
+whether - it is enforced.
 
 ## Why This Exists - Control the Ideas, Not the Code
 
@@ -81,12 +82,13 @@ pull request that delivers a change - folding the delta in, bumping
 ├── prompts/                      ← tool-agnostic prompt body per command
 ├── .claude/commands/             ← Claude Code command wrappers over prompts/
 ├── .cursor/rules/                ← points Cursor at AGENTS.md + constitution
+├── .githooks/                    ← optional pre-commit hook that runs spec-lint
 ├── .github/
 │   ├── copilot-instructions.md   ← points Copilot at AGENTS.md + constitution
 │   ├── CODEOWNERS                ← required reviewers (fill in before enabling)
 │   ├── PULL_REQUEST_TEMPLATE.md
-│   └── workflows/                ← spec-lint, adr-status, create-followup,
-│                                   a11y.yml.example (template, inactive)
+│   └── workflows/                ← spec-lint, adr-status, create-followup; inactive
+│                                   templates a11y.yml.example, acceptance-tests.yml.example
 ├── scripts/spec-lint.mjs         ← the enforcement backbone
 ├── src/                          ← implementation
 ├── tests/                        ← acceptance/ (runs the .feature scenarios), integration/, unit/
@@ -107,7 +109,7 @@ by a tool-agnostic prompt (any agent: [`prompts/`](./prompts/)):
 | # | Phase | Command | Output |
 |---|-------|---------|--------|
 | 1 | Idea | `/brief` | `docs/product/brief.md` |
-| 2 | Requirements | `/prd`, `/discover` | `docs/product/prd.md`, `docs/spec/behavior/discovery/*.md` |
+| 2 | Requirements | `/prd`, `/discover` | `docs/product/prd.md`, `docs/spec/behavior/discovery/*.md`, `docs/spec/behavior/journeys/*.feature` |
 | 3 | Specification | `/spec`, `/design`, `/acceptance` | `docs/spec/*.md`, `docs/design/design.md`, `docs/spec/behavior/*.feature` |
 | 4 | Decisions | `/adr` | `docs/adr/ADR-NNNN-*.md` |
 | 5 | Planning | `/plan` | `docs/plan/milestones.md`, `docs/plan/backlog.md` |
